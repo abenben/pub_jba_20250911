@@ -3,38 +3,251 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>リンク集</title>
+    <title>技術デモ一覧</title>
     <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+            --border-color: #dee2e6;
+            --background-color: #f8f9fa;
+            --text-color: #212529;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--background-color);
+            color: var(--text-color);
             line-height: 1.6;
-            margin: 2em;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-        h1 {
-            border-bottom: 2px solid #eee;
-            padding-bottom: 0.5em;
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
         }
-        ul {
-            list-style-type: none;
-            padding: 0;
+
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--info-color));
+            color: white;
+            padding: 2rem;
+            text-align: center;
         }
-        li {
-            margin-bottom: 1em;
+
+        header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 300;
+        }
+
+        header p {
+            margin: 1rem 0 0 0;
+            opacity: 0.9;
+            font-size: 1.2rem;
+        }
+
+        .content {
+            padding: 2rem;
+        }
+
+        .category-section {
+            margin-bottom: 3rem;
+        }
+
+        .category-title {
+            color: var(--primary-color);
+            font-size: 1.8rem;
+            margin: 0 0 0.5rem 0;
+            border-bottom: 3px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+            display: inline-block;
+        }
+
+        .category-description {
+            color: var(--secondary-color);
+            font-size: 1.1rem;
+            margin: 0 0 2rem 0;
+            font-style: italic;
+        }
+
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+        }
+
+        .tech-card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .tech-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+
+        .tech-card h3 {
+            color: var(--primary-color);
+            margin: 0 0 1rem 0;
+            font-size: 1.3rem;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .tech-card .description {
+            margin-bottom: 1.5rem;
+            color: var(--dark-color);
+        }
+
+        .tech-card .demo-link {
+            display: inline-block;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+        }
+
+        .tech-card .demo-link:hover {
+            background-color: #0056b3;
+        }
+
+        @media (max-width: 768px) {
+            .tech-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            header h1 {
+                font-size: 2rem;
+            }
+            
+            .content {
+                padding: 1rem;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>HTMLページ一覧</h1>
-    <ul>
-        <li><a href="./zkml.html" target="_blank" rel="noopener noreferrer">ZKP & ZKML 可視化デモ</a> - ゼロ知識証明と機械学習を組み合わせた概念を紹介します。</li>
-        <li><a href="./proof_of_personhood.html" target="_blank" rel="noopener noreferrer">Proof of Personhood (Worldcoin) 可視化デモ</a> - 個人証明プロトコルの流れを理解できます。</li>
-        <li><a href="./cp2a.html" target="_blank" rel="noopener noreferrer">C2PA 可視化デモ</a> - コンテンツ認証と来歴管理を学べます。</li>
-        <li><a href="./story_protocol.html" target="_blank" rel="noopener noreferrer">IP保護 可視化デモ</a> - Story Protocolによる知的財産管理の仕組みを示します。</li>
-        <li><a href="./crypt_ai_agent.html" target="_blank" rel="noopener noreferrer">オンチェーンAIエージェント デモ</a> - 従来の自動化との違いを体験できます。</li>
-        <li><a href="./ppfl.html" target="_blank" rel="noopener noreferrer">プライバシー保護型連合学習 可視化デモ</a> - データ共有なしに協調学習する手法を紹介します。</li>
-        <li><a href="./ai_dynamic_nft.html" target="_blank" rel="noopener noreferrer">AI連携型ダイナミックNFT 可視化デモ</a> - AIとNFTが連動する仕組みを紹介します。</li>
-        <li><a href="./cod.html" target="_blank" rel="noopener noreferrer">Compute-over-Data 可視化デモ</a> - データの近くで計算するCoDの流れを解説します。</li>
-        <li><a href="./ai_depin.html" target="_blank" rel="noopener noreferrer">DePIN for Compute 可視化デモ</a> - 分散型計算ネットワークを体験できるデモです。</li>
-    </ul>
-    </body>
+    <div class="container">
+        <header>
+            <h1>技術デモ一覧</h1>
+            <p>AI × ブロックチェーン技術の最前線を体験できるデモ集</p>
+        </header>
+        
+        <div class="content">
+            <div class="category-section">
+                <h2 class="category-title">基本技術</h2>
+                <p class="category-description">AI×ブロックチェーンの基盤となる核心技術</p>
+                <div class="tech-grid">
+                    <div class="tech-card">
+                        <h3>コンテンツ真正性（C2PA/Content Credentials）</h3>
+                        <div class="description">
+                            AIが生成したコンテンツ（画像、テキストなど）の生成元、編集履歴、作成者といった来歴情報を暗号的に埋め込み、改ざん耐性のある形でその真正性を証明する技術です。これにより、ディープフェイクやハルシネーションの問題が深刻化する中で、デジタルコンテンツの信頼性を確保します。
+                        </div>
+                        <a href="./cp2a.html" target="_blank" rel="noopener noreferrer" class="demo-link">デモを体験する</a>
+                    </div>
+
+                    <div class="tech-card">
+                        <h3>zkML（検証可能なAI推論）</h3>
+                        <div class="description">
+                            ゼロ知識証明（ZK-Proof）を機械学習（ML）の推論プロセスに応用し、<strong>AIの計算結果が正しいことや、特定の基準（例：公平性、データ使用の適切性）を満たしていることを、入力データやAIモデルの内部情報を一切公開せずに証明する</strong>高度な暗号技術です。金融や医療といった高信頼性が求められる分野でのAI活用に貢献します。
+                        </div>
+                        <a href="./zkml.html" target="_blank" rel="noopener noreferrer" class="demo-link">デモを体験する</a>
+                    </div>
+
+                    <div class="tech-card">
+                        <h3>Proof of Personhood (Worldcoin)</h3>
+                        <div class="description">
+                            AIとブロックチェーンを組み合わせることで、ディープフェイクやボットが横行するデジタル世界において、<strong>ユーザーが「本物の人間である」ことをプライバシーを保護しつつ一意に証明する</strong>技術です。専用デバイス「Orb」による生体認証（虹彩スキャン）とゼロ知識証明を組み合わせて、その証明を生成します。
+                        </div>
+                        <a href="./proof_of_personhood.html" target="_blank" rel="noopener noreferrer" class="demo-link">デモを体験する</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="category-section">
+                <h2 class="category-title">インフラ技術</h2>
+                <p class="category-description">分散型計算とデータ処理の基盤技術</p>
+                <div class="tech-grid">
+                    <div class="tech-card">
+                        <h3>FilecoinのCompute-over-Data（CoD）</h3>
+                        <div class="description">
+                            分散型ストレージネットワークであるFilecoinが、単なるデータ保存にとどまらず、<strong>保存されたデータの近くで直接計算処理（Compute-over-Data）を実行できる</strong>計算基盤へと進化しています。これにより、大規模なデータセットを移動させることなくAI分析を実行でき、データ転送コストの削減、プライバシー保護、および計算結果の検証可能性を提供します。
+                        </div>
+                        <a href="./cod.html" target="_blank" rel="noopener noreferrer" class="demo-link">デモを体験する</a>
+                    </div>
+
+                    <div class="tech-card">
+                        <h3>分散型物理インフラネットワーク（DePIN for Compute）</h3>
+                        <div class="description">
+                            AIブームによりGPU需要が爆発的に増加する中、世界中の未利用GPUリソースをブロックチェーン技術で束ね、AI学習や推論のための<strong>安価かつ分散化された計算能力を提供する</strong>ネットワークです。io.net, Render Network, Akash Networkなどのプロジェクトが代表的です。
+                        </div>
+                        <a href="./ai_depin.html" target="_blank" rel="noopener noreferrer" class="demo-link">デモを体験する</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="category-section">
+                <h2 class="category-title">応用技術</h2>
+                <p class="category-description">複数技術を組み合わせた高度なアプリケーション</p>
+                <div class="tech-grid">
+                    <div class="tech-card">
+                        <h3>Story ProtocolによるIP（知的財産）保護とライセンス自動化</h3>
+                        <div class="description">
+                            AIが生成したクリエイティブコンテンツの知的財産権（IP）をブロックチェーン上で管理し、その<strong>IPの所有権、ライセンス条件、およびロイヤリティ分配などをスマートコントラクトによって自動化する</strong>プロトコルです。AI生成コンテンツの著作権問題に対する新たな解決策を提供します。
+                        </div>
+                        <a href="./story_protocol.html" target="_blank" rel="noopener noreferrer" class="demo-link">デモを体験する</a>
+                    </div>
+
+                    <div class="tech-card">
+                        <h3>オンチェーンAIエージェントの自律的な動作</h3>
+                        <div class="description">
+                            ブロックチェーン上で自律的に動作するAIエージェントは、スマートコントラクトを通じて資金やリソースを管理し、特定のビジネス目標に基づいて<strong>自己判断で取引やタスクを実行する</strong>ことができます。その全ての行動と意思決定はオンチェーンに記録され、透明性と監査可能性が確保されます。
+                        </div>
+                        <a href="./crypt_ai_agent.html" target="_blank" rel="noopener noreferrer" class="demo-link">デモを体験する</a>
+                    </div>
+
+                    <div class="tech-card">
+                        <h3>プライバシー保護型連合学習（FHE/MPC/TEEとの連携）</h3>
+                        <div class="description">
+                            複数の組織（病院、企業など）が、<strong>互いに機密データを共有することなくAIモデルを協調的に学習させる</strong>「連合学習（Federated Learning）」に、完全準同型暗号（FHE）、マルチパーティ計算（MPC）、セキュアエンクレーブ（TEE）といったプライバシー強化技術を組み合わせることで、データプライバシーを最大限に保護しながらAIモデルの精度向上を目指します。
+                        </div>
+                        <a href="./ppfl.html" target="_blank" rel="noopener noreferrer" class="demo-link">デモを体験する</a>
+                    </div>
+
+                    <div class="tech-card">
+                        <h3>AI連携型ダイナミックNFT</h3>
+                        <div class="description">
+                            NFT（非代替性トークン）は通常、静的なデジタルアセットの所有権を証明しますが、AIと連携することで、<strong>外部のリアルタイムデータやユーザーのインタラクションに基づいて、見た目や属性、機能が動的に変化する「ダイナミックNFT」</strong>へと進化します。
+                        </div>
+                        <a href="./ai_dynamic_nft.html" target="_blank" rel="noopener noreferrer" class="demo-link">デモを体験する</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
 </html>
