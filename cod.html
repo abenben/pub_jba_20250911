@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compute-over-Data 可視化デモ</title>
+    <style>
+        :root {
+            --primary-color: #2196F3;
+            --secondary-color: #FFC107;
+            --success-color: #4CAF50;
+            --warning-color: #FF9800;
+            --error-color: #F44336;
+            --text-color: #333;
+            --bg-color: #f5f5f5;
+            --card-bg: #ffffff;
+            --border-color: #ddd;
+            --constraint-physical: #e74c3c;
+            --constraint-economic: #f39c12;
+            --constraint-legal: #9b59b6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary-color), #1976D2);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .tabs {
+            display: flex;
+            background: var(--card-bg);
+            border-radius: 10px 10px 0 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 1rem 2rem;
+            background: #e0e0e0;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab-button:hover {
+            background: #d0d0d0;
+        }
+
+        .tab-button.active {
+            background: var(--card-bg);
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+
+        .tab-content {
+            display: none;
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            min-height: 600px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .section {
+            margin-bottom: 3rem;
+        }
+
+        .section h2 {
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .section h3 {
+            color: var(--text-color);
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+
+        .constraints-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .constraint-card {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-left: 5px solid;
+            transition: transform 0.3s ease;
+        }
+
+        .constraint-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .constraint-card.physical {
+            border-left-color: var(--constraint-physical);
+        }
+
+        .constraint-card.economic {
+            border-left-color: var(--constraint-economic);
+        }
+
+        .constraint-card.legal {
+            border-left-color: var(--constraint-legal);
+        }
+
+        .constraint-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .constraint-card.physical .constraint-icon {
+            color: var(--constraint-physical);
+        }
+
+        .constraint-card.economic .constraint-icon {
+            color: var(--constraint-economic);
+        }
+
+        .constraint-card.legal .constraint-icon {
+            color: var(--constraint-legal);
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            background: var(--card-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .comparison-table th {
+            background: var(--primary-color);
+            color: white;
+            font-weight: 600;
+        }
+
+        .comparison-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .comparison-table tr:hover {
+            background: #e3f2fd;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            border-left: 4px solid var(--primary-color);
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .demo-container {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .control-panel {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .control-panel h3 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .step {
+            flex: 1;
+            text-align: center;
+            padding: 0.5rem;
+            margin: 0 0.25rem;
+            border-radius: 5px;
+            background: #e0e0e0;
+            color: #666;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .step.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .step.completed {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .control-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .control-button {
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .control-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .control-button.primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .control-button.primary:hover:not(:disabled) {
+            background: #1976D2;
+        }
+
+        .control-button.secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .control-button.secondary:hover:not(:disabled) {
+            background: #5a6268;
+        }
+
+        .reset-button {
+            background: var(--error-color);
+            color: white;
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+
+        .reset-button:hover {
+            background: #d32f2f;
+        }
+
+        .step-info {
+            background: white;
+            padding: 1rem;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 1rem;
+        }
+
+        .visualization-area {
+            background: white;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .world-map {
+            width: 100%;
+            height: 400px;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            position: relative;
+            border-radius: 10px;
+        }
+
+        .data-node {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+
+        .compute-resource {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: var(--warning-color);
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            z-index: 11;
+        }
+
+        .data-flow {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, var(--success-color), transparent);
+            z-index: 5;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .process-info {
+            padding: 1rem;
+            background: #f8f9fa;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin: 0.25rem 0.25rem 0.25rem 0;
+        }
+
+        .tag-private {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .tag-public {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .summary-card {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-top: 4px solid var(--primary-color);
+        }
+
+        .summary-card h3 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .summary-card .icon {
+            font-size: 1.5rem;
+        }
+
+        .benefit-list {
+            list-style: none;
+        }
+
+        .benefit-list li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .benefit-list li:before {
+            content: "✓";
+            color: var(--success-color);
+            font-weight: bold;
+            margin-top: 0.1rem;
+        }
+
+        .cost-comparison {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .cost-item {
+            margin: 1rem 0;
+            padding: 1rem;
+            border-radius: 5px;
+        }
+
+        .cost-traditional {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .cost-cod {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .cost-amount {
+            font-size: 2rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        .info-panel {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 10px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .info-panel h3 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .tech-stack {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .tech-item {
+            background: var(--card-bg);
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 3px solid var(--secondary-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .tech-item h4 {
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .web3-integration {
+            background: linear-gradient(135deg, #f8f9fa, #e3f2fd);
+            padding: 2rem;
+            border-radius: 10px;
+            margin: 2rem 0;
+            border: 1px solid var(--border-color);
+        }
+
+        .web3-features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .web3-feature {
+            background: var(--card-bg);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .web3-feature .icon {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(50px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .animate-slideInRight {
+            animation: slideInRight 0.5s ease-out;
+        }
+
+        .animate-pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @media (max-width: 768px) {
+            .demo-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .control-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .constraints-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Compute-over-Data 可視化デモ</h1>
+            <p>データは動かず、計算を動かす。新しいAI処理パラダイムを学ぶ</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-button active" onclick="openTab(event, 'overview')">1. 解説＆比較</button>
+            <button class="tab-button" onclick="openTab(event, 'demo')">2. Compute-over-Data</button>
+            <button class="tab-button" onclick="openTab(event, 'summary')">3. まとめ</button>
+        </div>
+
+        <!-- Overview Tab -->
+        <div id="overview" class="tab-content active">
+            <div class="section">
+                <h2>なぜ今、Compute-over-Dataなのか？</h2>
+                <p>
+                    AIとデータ分析の歴史は、<strong>「データと計算、どちらを動かすか？」</strong>という問いへの答えの変遷史でもあります。
+                    長らく、計算能力（知性）を中央に集約し、そこにデータ（素材）を運び込む「データ集約型」アプローチが主流でした。
+                    しかし、現代において、このモデルは深刻な「三重苦」に直面しています。
+                </p>
+            </div>
+
+            <div class="section">
+                <h2>データ集約モデルが直面する「三重苦」</h2>
+                <div class="constraints-grid">
+                    <div class="constraint-card physical">
+                        <span class="constraint-icon">⚡</span>
+                        <h3>物理的限界</h3>
+                        <h4>The Laws of Physics</h4>
+                        <p>光の速さには限界があり、大陸間でのデータ転送には遅延が避けられません。自動運転車がブレーキ判断のために地球の裏側のサーバーにデータを送る時間はありません。<strong>データの発生源と計算拠点の物理的な距離</strong>が、リアルタイムAIの越えられない壁となります。</p>
+                    </div>
+                    
+                    <div class="constraint-card economic">
+                        <span class="constraint-icon">💰</span>
+                        <h3>経済的限界</h3>
+                        <h4>The Laws of Economics</h4>
+                        <p>データの転送には膨大なネットワーク帯域が必要であり、特にクラウドからデータを外部に取り出す際の<strong>データ転送費用（Egress Cost）</strong>は、データ量の増加に伴い指数関数的に増大します。「データの輸送費」が利益を圧迫するのです。</p>
+                    </div>
+                    
+                    <div class="constraint-card legal">
+                        <span class="constraint-icon">⚖️</span>
+                        <h3>法的・倫理的限界</h3>
+                        <h4>The Laws of Land</h4>
+                        <p>GDPR（EU一般データ保護規則）に代表される各国のデータ保護法は、<strong>「データ主権（Data Sovereignty）」</strong>の原則を明確にしました。個人データを安易に国境を越えて転送することは、巨額の罰金や事業停止に繋がる重大なコンプライアンス違反です。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>従来手法 vs Compute-over-Data</h2>
+                <p>
+                    この三重苦を根本から解決するパラダイムシフトが<strong>Compute-over-Data (CoD)</strong>です。
+                    CoDは「データはその場に留め、計算（アルゴリズムやAIモデル）が旅をする」という分散型の思想に基づきます。
+                </p>
+                
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>項目</th>
+                            <th>従来手法（データ集約型）</th>
+                            <th>Compute-over-Data</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>基本思想</td>
+                            <td>知性（計算能力）は一箇所に集約し、素材（データ）をそこへ運ぶ</td>
+                            <td>素材（データ）はその場に留め、知性（計算）が旅をする</td>
+                        </tr>
+                        <tr>
+                            <td>データ移動</td>
+                            <td>全データを中央のデータレイク/DWHに物理的に移動・集約</td>
+                            <td>データは元の場所に保持、移動しない</td>
+                        </tr>
+                        <tr>
+                            <td>計算場所</td>
+                            <td>中央の計算センター（クラウド）</td>
+                            <td>データ近傍の分散ノード（エッジ）</td>
+                        </tr>
+                        <tr>
+                            <td>転送コスト</td>
+                            <td>高額（TB単位のデータ転送費用）</td>
+                            <td>最小限（計算結果のみ転送）</td>
+                        </tr>
+                        <tr>
+                            <td>プライバシー</td>
+                            <td>データが外部に移動、中央管理者が全データにアクセス可能</td>
+                            <td>データは元の場所で保護、生データは外部に出ない</td>
+                        </tr>
+                        <tr>
+                            <td>レイテンシ</td>
+                            <td>データ転送時間により高レイテンシ</td>
+                            <td>データ近傍処理により低レイテンシ</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="highlight-box">
+                    <strong>金融業界での革新的価値:</strong> 顧客データや取引記録を一切移動させることなく、信用リスク評価、コンプライアンス監査、市場分析を実行できます。これにより、GDPR等のデータ保護規制への完全準拠、データ転送コストの大幅削減、そしてリアルタイム分析を同時に実現します。
+                </div>
+            </div>
+        </div>
+
+        <!-- Demo Tab -->
+        <div id="demo" class="tab-content">
+            <div class="section">
+                <h2>インタラクティブデモ: Compute-over-Data プロセス</h2>
+                <div class="demo-container">
+                    <div class="control-panel">
+                        <h3>操作パネル</h3>
+                        <div class="step-indicator">
+                            <div class="step" id="step1">1. データ分散配置</div>
+                            <div class="step" id="step2">2. 計算リクエスト</div>
+                            <div class="step" id="step3">3. データ近傍計算</div>
+                            <div class="step" id="step4">4. 結果検証</div>
+                        </div>
+                        <div class="control-buttons">
+                            <button class="control-button primary" onclick="startStep(1)" id="btn1">1. データを分散配置</button>
+                            <button class="control-button primary" onclick="startStep(2)" id="btn2" disabled>2. AI分析をリクエスト</button>
+                            <button class="control-button primary" onclick="startStep(3)" id="btn3" disabled>3. 計算リソースを移動</button>
+                            <button class="control-button primary" onclick="startStep(4)" id="btn4" disabled>4. 結果を検証</button>
+                        </div>
+                        <button class="control-button reset-button" onclick="resetDemo()">リセット</button>
+                        
+                        <div id="step-info" class="step-info">
+                            <strong>ステップ1:</strong> 世界各地のFilecoinノードにデータが分散保存されます。
+                            <br><br>
+                            <span class="tag tag-private">非公開</span> 元データ（顧客情報、取引記録）
+                            <br>
+                            <span class="tag tag-public">公開</span> データの存在証明、ハッシュ値
+                        </div>
+                    </div>
+                    <div class="visualization-area">
+                        <h3>世界分散データネットワーク</h3>
+                        <div class="world-map" id="world-map">
+                        </div>
+                        <div class="process-info" id="process-info">
+                            <p><strong>現在の状態:</strong> 初期状態 - 「データを分散配置」ボタンを押して開始してください</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Tab -->
+        <div id="summary" class="tab-content">
+            <div class="section">
+                <h2>Compute-over-Dataの価値と展望</h2>
+                <p>CoDは単なる技術革新ではありません。データの所有権を個人に取り戻し、プライバシーと経済的インセンティブを両立させる、より民主的で公正なデジタル社会に向けた根源的な構造変革なのです。</p>
+            </div>
+
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <h3><span class="icon">🏦</span>金融業界での技術的メリット</h3>
+                    <ul class="benefit-list">
+                        <li><strong>リスク分析の効率化:</strong> 顧客データを移動せずに信用リスク評価を実行</li>
+                        <li><strong>コンプライアンス監査:</strong> GDPR等の規制要件に基づく分散データ監査</li>
+                        <li><strong>市場分析の高速化:</strong> 取引データの近傍分析による迅速なインサイト</li>
+                        <li><strong>プライバシー保護:</strong> データ主権を保持しながらのAI活用</li>
+                        <li><strong>リアルタイム処理:</strong> 物理的距離による遅延を最小化</li>
+                    </ul>
+                </div>
+                
+                <div class="summary-card">
+                    <h3><span class="icon">💰</span>経済的価値</h3>
+                    <div class="cost-comparison">
+                        <div class="cost-item cost-traditional">
+                            <span class="cost-amount">$10,000</span>
+                            従来手法：データ転送費用<br>（1TB分析の場合）
+                        </div>
+                        <div class="cost-item cost-cod">
+                            <span class="icon">⬇️</span>
+                            <span class="cost-amount">$100</span>
+                            CoD手法：処理結果転送のみ<br>（99%コスト削減）
+                        </div>
+                    </div>
+                    <p><strong>Data-to-Earn:</strong> ユーザーが自らのデータで直接収益を得る新しいモデルを実現</p>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>CoDを支える中核技術</h2>
+                <div class="tech-stack">
+                    <div class="tech-item">
+                        <h4>連合学習 (Federated Learning)</h4>
+                        <p>プライバシーを保護しながら協調してAIモデルを学習。生データは決してデバイスから離れず、改善点のみを暗号化して送信。</p>
+                    </div>
+                    <div class="tech-item">
+                        <h4>準同型暗号 (Homomorphic Encryption)</h4>
+                        <p>データを暗号化したまま計算を実行。サーバーはデータの中身を見ることなく統計分析を行い、暗号化された結果のみを返す。</p>
+                    </div>
+                    <div class="tech-item">
+                        <h4>セキュアマルチパーティ計算 (SMPC)</h4>
+                        <p>複数の組織が互いのデータを秘密にしたまま、全員のデータを集計したかのような計算結果を得る暗号プロトコル。</p>
+                    </div>
+                    <div class="tech-item">
+                        <h4>エッジAI</h4>
+                        <p>AIの推論だけでなく学習そのものをエッジデバイスで実行。クラウドとの通信が不要な真に自律したインテリジェントデバイス。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="web3-integration">
+                <h2>Web3との融合：新しいエコシステムの誕生</h2>
+                <p>CoDとWeb3は深く共鳴し、互いを補完し合う必然的な関係にあります。Web3の「分散化」と「データ主権の奪還」という思想において、CoDは技術的な最後の、そして最も重要なピースです。</p>
+                
+                <div class="web3-features">
+                    <div class="web3-feature">
+                        <div class="icon">🔐</div>
+                        <h4>自己主権型アイデンティティ (SSI/DID)</h4>
+                        <p>個人情報はユーザー管理下のデジタルウォレットに保管</p>
+                    </div>
+                    <div class="web3-feature">
+                        <div class="icon">🌐</div>
+                        <h4>分散型ストレージ (IPFS/Arweave)</h4>
+                        <p>データは世界中のノードに分散して暗号化・保存</p>
+                    </div>
+                    <div class="web3-feature">
+                        <div class="icon">⛓️</div>
+                        <h4>ブロックチェーン</h4>
+                        <p>スマートコントラクトによる信頼の自動化</p>
+                    </div>
+                    <div class="web3-feature">
+                        <div class="icon">🔍</div>
+                        <h4>ゼロ知識証明 (ZKP)</h4>
+                        <p>データの中身を明かすことなく計算の正当性を証明</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>パラダイムシフトの比較</h2>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>比較軸</th>
+                            <th>従来のデータ集約型アプローチ</th>
+                            <th>Compute-over-Data × Web3</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>データ所有権</td>
+                            <td>プラットフォーム企業</td>
+                            <td><strong>ユーザー個人（データ主権）</strong></td>
+                        </tr>
+                        <tr>
+                            <td>思想的背景</td>
+                            <td>中央集権・効率主義</td>
+                            <td><strong>分散・自律・プライバシー</strong></td>
+                        </tr>
+                        <tr>
+                            <td>信頼の基盤</td>
+                            <td>企業のブランド・契約書</td>
+                            <td><strong>暗号技術・スマートコントラクト</strong></td>
+                        </tr>
+                        <tr>
+                            <td>価値の流れ</td>
+                            <td>データを吸い上げ、プラットフォームが収益化</td>
+                            <td><strong>計算を分散させ、データ提供者に価値が直接還元</strong></td>
+                        </tr>
+                        <tr>
+                            <td>アーキテクチャ</td>
+                            <td>閉じたデータレイク/DWH</td>
+                            <td><strong>オープンな分散型ストレージと計算ネットワーク</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="info-panel">
+                <h3>🚀 次世代の金融AI基盤への展望</h3>
+                <p>
+                    <strong>データの主権を保ちながら、グローバルな分散計算ネットワークを活用した新しい金融サービス</strong>の創出が期待されます。
+                    これは単なる技術革新ではなく、より民主的で公正なデジタル社会に向けた根源的な構造変革です。
+                </p>
+                <p>
+                    従来のAI分析が「データを支配する者の知性」を強化するものであったとすれば、
+                    <strong>Compute-over-DataとWeb3の融合は、「個々の主権を尊重しながら、分散した知性を協調させる」</strong>
+                    という、全く新しい社会の形を提示しています。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 0;
+        let dataNodes = [];
+        let computeResources = [];
+
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].classList.remove("active");
+            }
+            tablinks = document.getElementsByClassName("tab-button");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].classList.remove("active");
+            }
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+
+        function startStep(step) {
+            currentStep = step;
+            updateStepIndicator();
+            updateButtons();
+            
+            switch(step) {
+                case 1:
+                    distributeData();
+                    break;
+                case 2:
+                    requestComputation();
+                    break;
+                case 3:
+                    moveCompute();
+                    break;
+                case 4:
+                    verifyResults();
+                    break;
+            }
+        }
+
+        function updateStepIndicator() {
+            for (let i = 1; i <= 4; i++) {
+                const stepElement = document.getElementById(`step${i}`);
+                stepElement.classList.remove('active', 'completed');
+                
+                if (i === currentStep) {
+                    stepElement.classList.add('active');
+                } else if (i < currentStep) {
+                    stepElement.classList.add('completed');
+                }
+            }
+        }
+
+        function updateButtons() {
+            for (let i = 1; i <= 4; i++) {
+                const button = document.getElementById(`btn${i}`);
+                button.disabled = i > currentStep + 1;
+            }
+        }
+
+        function distributeData() {
+            const worldMap = document.getElementById('world-map');
+            worldMap.innerHTML = '';
+            dataNodes = [];
+            
+            const positions = [
+                {x: 15, y: 30}, {x: 25, y: 45}, {x: 35, y: 25},
+                {x: 65, y: 20}, {x: 75, y: 40}, {x: 85, y: 35}
+            ];
+            
+            positions.forEach((pos, index) => {
+                setTimeout(() => {
+                    const node = document.createElement('div');
+                    node.className = 'data-node animate-fadeIn';
+                    node.style.left = pos.x + '%';
+                    node.style.top = pos.y + '%';
+                    node.title = `データノード ${index + 1}`;
+                    worldMap.appendChild(node);
+                    dataNodes.push(node);
+                }, index * 200);
+            });
+            
+            updateStepInfo(1);
+            updateProcessInfo('データが世界各地のFilecoinノードに分散配置されました。各ノードは暗号化されたデータを安全に保存しています。');
+        }
+
+        function requestComputation() {
+            updateStepInfo(2);
+            updateProcessInfo('AI分析リクエストが送信されました。計算タスクが各データノードに配布されています。');
+            
+            dataNodes.forEach((node, index) => {
+                setTimeout(() => {
+                    node.classList.add('animate-pulse');
+                }, index * 100);
+            });
+        }
+
+        function moveCompute() {
+            const worldMap = document.getElementById('world-map');
+            computeResources = [];
+            
+            dataNodes.forEach((node, index) => {
+                setTimeout(() => {
+                    const compute = document.createElement('div');
+                    compute.className = 'compute-resource animate-slideInRight';
+                    compute.style.left = node.style.left;
+                    compute.style.top = (parseInt(node.style.top) + 5) + '%';
+                    compute.style.opacity = '1';
+                    compute.title = `計算リソース ${index + 1}`;
+                    worldMap.appendChild(compute);
+                    computeResources.push(compute);
+                    
+                    node.classList.remove('animate-pulse');
+                }, index * 300);
+            });
+            
+            updateStepInfo(3);
+            updateProcessInfo('計算リソースがデータの近くに移動しました。各ノードでローカル計算が実行されています。');
+        }
+
+        function verifyResults() {
+            computeResources.forEach((compute, index) => {
+                setTimeout(() => {
+                    compute.style.backgroundColor = 'var(--success-color)';
+                    compute.classList.add('animate-pulse');
+                }, index * 200);
+            });
+            
+            updateStepInfo(4);
+            updateProcessInfo('計算が完了し、結果が検証されました。元データは移動せず、計算結果のみが統合されています。');
+        }
+
+        function updateStepInfo(step) {
+            const stepInfo = document.getElementById('step-info');
+            const stepTexts = {
+                1: '<strong>ステップ1:</strong> 世界各地のFilecoinノードにデータが分散保存されます。<br><br><span class="tag tag-private">非公開</span> 元データ（顧客情報、取引記録）<br><span class="tag tag-public">公開</span> データの存在証明、ハッシュ値',
+                2: '<strong>ステップ2:</strong> AI分析リクエストが送信され、各ノードに計算タスクが配布されます。<br><br><span class="tag tag-public">公開</span> 計算アルゴリズム、パラメータ<br><span class="tag tag-private">非公開</span> 実際のデータ内容',
+                3: '<strong>ステップ3:</strong> 計算リソースがデータの近くに移動し、ローカルで処理を実行します。<br><br><span class="tag tag-private">非公開</span> データは元の場所に留まる<br><span class="tag tag-public">公開</span> 計算プロセスの進行状況',
+                4: '<strong>ステップ4:</strong> 計算結果が検証され、統合されます。元データは一切移動していません。<br><br><span class="tag tag-public">公開</span> 計算結果、統計情報<br><span class="tag tag-private">非公開</span> 個別データの詳細'
+            };
+            stepInfo.innerHTML = stepTexts[step];
+        }
+
+        function updateProcessInfo(text) {
+            const processInfo = document.getElementById('process-info');
+            processInfo.innerHTML = `<p><strong>現在の状態:</strong> ${text}</p>`;
+        }
+
+        function resetDemo() {
+            currentStep = 0;
+            const worldMap = document.getElementById('world-map');
+            worldMap.innerHTML = '';
+            dataNodes = [];
+            computeResources = [];
+            
+            updateStepIndicator();
+            updateButtons();
+            updateStepInfo(1);
+            updateProcessInfo('初期状態 - 「データを分散配置」ボタンを押して開始してください');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            resetDemo();
+        });
+    </script>
+</body>
+</html>

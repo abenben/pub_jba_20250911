@@ -1,0 +1,1048 @@
+<!--
+README: IP保護 可視化デモ（単一HTML / オフライン）
+使い方:
+  1) このファイルをブラウザで開きます。
+  2) 上部のタブで「解説＆比較」「IP保護」「まとめ」を切り替えます。
+  3) 左側のパネルでステップを進めると、右側の図とライセンス情報が連動して変化します。
+注意: これは教育用の概念実証デモです。実際のStory Protocol実装ではありません。
+-->
+<!doctype html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP保護 可視化デモ</title>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --background-color: #f8f9fa;
+            --text-color: #212529;
+            --border-color: #dee2e6;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+            --warning-color: #ffc107;
+            --public-color: #28a745;
+            --private-color: #dc3545;
+            --code-bg: #e9ecef;
+            --animation-duration: 0.8s;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+        .tabs {
+            display: flex;
+            background-color: #f1f1f1;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .tab-button {
+            background-color: inherit;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 14px 16px;
+            transition: 0.3s;
+            font-size: 1rem;
+            flex-grow: 1;
+        }
+        .tab-button:hover {
+            background-color: #ddd;
+        }
+        .tab-button.active {
+            background-color: #ccc;
+            border-bottom: 3px solid var(--primary-color);
+        }
+        .tab-content {
+            display: none;
+            padding: 20px;
+            border-top: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .section {
+            margin-bottom: 2rem;
+        }
+        .section h2 {
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+            color: var(--primary-color);
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+        .control-panel {
+            background-color: var(--background-color);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        .visualization {
+            background-color: #fff;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            min-height: 400px;
+        }
+        .button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .button:disabled {
+            background-color: var(--secondary-color);
+            cursor: not-allowed;
+        }
+        .button.success {
+            background-color: var(--success-color);
+        }
+        .button.danger {
+            background-color: var(--danger-color);
+        }
+        .tag {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin: 2px;
+        }
+        .tag-public {
+            background-color: var(--success-color);
+            color: white;
+        }
+        .tag-private {
+            background-color: var(--danger-color);
+            color: white;
+        }
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        .comparison-table th,
+        .comparison-table td {
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            text-align: left;
+        }
+        .comparison-table th {
+            background-color: var(--background-color);
+            font-weight: bold;
+        }
+        .comparison-table .traditional {
+            background-color: #fff5f5;
+        }
+        .comparison-table .story {
+            background-color: #f0fff4;
+        }
+        .ip-workflow {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+        .ai-generator {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 100px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--info-color), var(--primary-color));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .content-item {
+            position: absolute;
+            width: 60px;
+            height: 40px;
+            background-color: var(--warning-color);
+            border-radius: 4px;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            transition: all var(--animation-duration);
+            opacity: 0;
+        }
+        .nft-token {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--success-color), #20c997);
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            transition: all var(--animation-duration);
+            opacity: 0;
+        }
+        .license-contract {
+            position: absolute;
+            width: 100px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary-color), #0056b3);
+            border-radius: 8px;
+            border: 2px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            text-align: center;
+            transition: all var(--animation-duration);
+            opacity: 0;
+        }
+        .royalty-flow {
+            position: absolute;
+            height: 3px;
+            background: linear-gradient(90deg, var(--success-color), transparent);
+            opacity: 0;
+            transition: opacity var(--animation-duration);
+        }
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin: 1rem 0;
+        }
+        .step {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            background-color: var(--background-color);
+            border: 1px solid var(--border-color);
+            margin: 0 2px;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+        .step.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        .step.completed {
+            background-color: var(--success-color);
+            color: white;
+        }
+        .info-panel {
+            background-color: var(--background-color);
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border-left: 4px solid var(--info-color);
+        }
+        .license-details {
+            background-color: #f8f9fa;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .license-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .license-item:last-child {
+            border-bottom: none;
+        }
+        .royalty-distribution {
+            display: flex;
+            justify-content: space-around;
+            margin: 1rem 0;
+        }
+        .royalty-recipient {
+            text-align: center;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: #f8f9fa;
+        }
+        .royalty-amount {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--success-color);
+            margin: 0.5rem 0;
+        }
+        .summary-list {
+            list-style: '✅ ';
+            padding-left: 20px;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideInRight {
+            from { transform: translateX(50px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 5px var(--success-color); }
+            50% { box-shadow: 0 0 20px var(--success-color); }
+        }
+        .animate-fadeIn {
+            animation: fadeIn var(--animation-duration) ease-in;
+        }
+        .animate-slideInRight {
+            animation: slideInRight var(--animation-duration) ease-out;
+        }
+        .animate-pulse {
+            animation: pulse 2s infinite;
+        }
+        .animate-glow {
+            animation: glow 2s infinite;
+        }
+        @media (max-width: 768px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+            body {
+                padding: 10px;
+            }
+            .royalty-distribution {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>IP保護 可視化デモ</h1>
+        <p>「創作を守り、価値を分配する。」AI時代の知的財産管理を学ぶ</p>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-button active" onclick="openTab(event, 'overview')">1. 解説＆比較</button>
+        <button class="tab-button" onclick="openTab(event, 'demo')">2. IP保護</button>
+        <button class="tab-button" onclick="openTab(event, 'summary')">3. まとめ</button>
+    </div>
+
+    <!-- Overview Section -->
+    <div id="overview" class="tab-content active">
+        <div class="section">
+            <h2>IP管理の革命：「城壁モデル」から「ネットワークモデル」へ</h2>
+            
+            <div class="info-panel" style="background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%); border-left: 4px solid var(--primary-color);">
+                <h3>🏰 ストーリー：クリエイティブエージェンシー「ブライト・アイデア」の挑戦</h3>
+                <p>
+                    東京のクリエイティブエージェンシー「ブライト・アイデア」は、大手企業向けのマーケティング素材を制作しています。
+                    しかし、従来のIP管理システムでは、作品の権利関係が複雑になり、クリエイターへの適切な報酬分配が困難でした。
+                    そんな時、彼らはStory Protocolという革新的なソリューションに出会います...
+                </p>
+            </div>
+
+            <h3>🏰 従来のIP管理：「城壁モデル」の限界</h3>
+            <div style="background-color: #fff5f5; padding: 1rem; border-radius: 8px; margin: 1rem 0; border-left: 4px solid var(--danger-color);">
+                <p>
+                    従来のIP管理は、IPを「保護」し、無断利用を防ぐことを主眼に置いた<strong>「城壁モデル」</strong>です。
+                    まるで城を高い壁で囲み、限られた門からのみアクセスを許可するように、IPを孤立させて管理します。
+                </p>
+                <ul>
+                    <li><strong>中央集権的な権威:</strong> 著作権庁、出版社、レコード会社などが権利の正当性を担保</li>
+                    <li><strong>国境による分断:</strong> 各国の法律に基づく属地的な権利管理</li>
+                    <li><strong>属人的な契約:</strong> 当事者間の個別交渉による時間のかかる契約プロセス</li>
+                    <li><strong>事後的な権利行使:</strong> 侵害発生後の訴訟による高コストな解決</li>
+                </ul>
+            </div>
+
+            <h3>🌐 Story Protocol：「ネットワークモデル」の可能性</h3>
+            <div style="background-color: #f0fff4; padding: 1rem; border-radius: 8px; margin: 1rem 0; border-left: 4px solid var(--success-color);">
+                <p>
+                    Story Protocolは、IPを孤立させるのではなく、<strong>オープンなネットワーク上で自由に繋がり、新たな価値を生み出すことを促進する「ネットワークモデル」</strong>です。
+                    IPをノード（点）とし、リミックスや派生作品をエッジ（線）で結びつけ、価値がネットワーク全体を流れる仕組みです。
+                </p>
+                <ul>
+                    <li><strong>分散型の公開台帳:</strong> ブロックチェーンによるグローバルで改ざん不可能な記録</li>
+                    <li><strong>国境のないインフラ:</strong> 本質的にグローバルなボーダーレス管理</li>
+                    <li><strong>プログラム可能な権利:</strong> スマートコントラクトによる自動実行</li>
+                    <li><strong>事前合意と自動実行:</strong> 人間の介在なしの透明な権利処理</li>
+                </ul>
+            </div>
+
+            <h3>📊 詳細比較：二つのモデルの根本的違い</h3>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>項目</th>
+                        <th class="traditional">従来のIP管理（城壁モデル）</th>
+                        <th class="story">Story Protocol（ネットワークモデル）</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>管理思想</strong></td>
+                        <td class="traditional">IPを「保護」し、無断利用を防ぐ</td>
+                        <td class="story">IPを「繋げ」て、新たな価値を創造</td>
+                    </tr>
+                    <tr>
+                        <td><strong>信頼の基盤</strong></td>
+                        <td class="traditional">法律、契約書、組織の権威</td>
+                        <td class="story">暗号技術、スマートコントラクト</td>
+                    </tr>
+                    <tr>
+                        <td><strong>IPの性質</strong></td>
+                        <td class="traditional">法的な権利、静的な証明書</td>
+                        <td class="story">オンチェーンの資産、動的なアセット</td>
+                    </tr>
+                    <tr>
+                        <td><strong>来歴の追跡</strong></td>
+                        <td class="traditional">困難、体系的な仕組みなし</td>
+                        <td class="story">自動的かつ透明に記録（アトリビューション）</td>
+                    </tr>
+                    <tr>
+                        <td><strong>ライセンス</strong></td>
+                        <td class="traditional">属人的な交渉、時間がかかる、不透明</td>
+                        <td class="story">プログラム可能、即時、透明</td>
+                    </tr>
+                    <tr>
+                        <td><strong>収益分配</strong></td>
+                        <td class="traditional">中間業者が介在、不透明、遅延あり</td>
+                        <td class="story">スマートコントラクトによる自動分配、即時</td>
+                    </tr>
+                    <tr>
+                        <td><strong>二次創作</strong></td>
+                        <td class="traditional">許可が必要、法的にグレー、収益化困難</td>
+                        <td class="story">ルールベースで奨励、貢献として記録・還元</td>
+                    </tr>
+                    <tr>
+                        <td><strong>コスト</strong></td>
+                        <td class="traditional">高い（弁護士費用、中間マージンなど）</td>
+                        <td class="story">低い（ガス代のみ）、中間搾取を排除</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info-panel">
+                <h3>💡 ブライト・アイデアの発見</h3>
+                <p>
+                    <strong>従来の課題:</strong> 複数のクリエイターが関わるプロジェクトで、誰がどの程度貢献したかを追跡し、
+                    適切にロイヤリティを分配することが困難でした。契約書の作成に数週間、権利関係の整理に数ヶ月かかることも...
+                </p>
+                <p>
+                    <strong>Story Protocolの解決策:</strong> 各クリエイターの貢献を自動的に記録し、
+                    作品が利用されるたびに設定されたルールに従って即座にロイヤリティが分配されます。
+                    これにより、クリエイターは創作活動に集中でき、公正な報酬を確実に受け取れるようになりました。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Demo Section -->
+    <div id="demo" class="tab-content">
+        <div class="section">
+            <h2>🎬 ブライト・アイデアの Story Protocol 体験ストーリー</h2>
+            
+            <div class="info-panel" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid var(--info-color);">
+                <h3>📖 シナリオ設定</h3>
+                <p>
+                    ブライト・アイデアが大手銀行向けの<strong>「デジタル金融サービス紹介動画」</strong>プロジェクトを受注しました。
+                    このプロジェクトには、シナリオライター（田中さん）、イラストレーター（佐藤さん）、
+                    ナレーター（鈴木さん）、動画編集者（山田さん）の4名が参加します。
+                </p>
+                <p>
+                    従来なら複雑な契約書作成と権利関係の整理に数週間かかるところを、
+                    Story Protocolを使って<strong>透明で自動化されたIP管理</strong>を実現します。
+                </p>
+            </div>
+
+            <div class="layout">
+                <div class="control-panel">
+                    <h3>🎮 体験デモ操作パネル</h3>
+                    <div class="step-indicator">
+                        <div class="step" id="step1">1. 創作＆IP登録</div>
+                        <div class="step" id="step2">2. 協働ライセンス</div>
+                        <div class="step" id="step3">3. 利用＆追跡</div>
+                        <div class="step" id="step4">4. 価値分配</div>
+                    </div>
+                    <div style="margin: 1rem 0;">
+                        <button class="button" onclick="startStep(1)" id="btn1">1. 🎨 各クリエイターが創作開始</button>
+                        <button class="button" onclick="startStep(2)" id="btn2" disabled>2. 🤝 協働ライセンス自動設定</button>
+                        <button class="button" onclick="startStep(3)" id="btn3" disabled>3. 📺 動画公開＆利用追跡</button>
+                        <button class="button" onclick="startStep(4)" id="btn4" disabled>4. 💰 収益の自動分配</button>
+                    </div>
+                    <button class="button danger" onclick="resetDemo()">🔄 リセット</button>
+                    
+                    <div id="step-info" class="info-panel">
+                        <strong>ステップ1: 創作＆IP登録</strong><br><br>
+                        各クリエイターが自分の作品をStory Protocolに登録します。
+                        従来のように複雑な契約書は不要で、作品の貢献度と権利関係が自動的に記録されます。
+                        <br><br>
+                        <span class="tag tag-private">非公開</span> 創作過程、個人情報
+                        <br>
+                        <span class="tag tag-public">公開</span> 作品のハッシュ、貢献度、所有権証明
+                    </div>
+
+                    <div id="license-info" class="license-details" style="display: none;">
+                        <h4>🤝 協働ライセンス条件</h4>
+                        <div class="license-item">
+                            <span>🏢 企業利用</span>
+                            <span><strong>基本料金 + 8% ロイヤリティ</strong></span>
+                        </div>
+                        <div class="license-item">
+                            <span>🎭 二次創作・リミックス</span>
+                            <span><strong>許可（3% ロイヤリティ）</strong></span>
+                        </div>
+                        <div class="license-item">
+                            <span>📚 教育利用</span>
+                            <span><strong>無料（クレジット表記必須）</strong></span>
+                        </div>
+                        <div class="license-item">
+                            <span>🌍 海外展開</span>
+                            <span><strong>自動許可（地域別料金設定）</strong></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="visualization">
+                    <h3>🌐 Story Protocol ネットワーク可視化</h3>
+                    <div class="ip-workflow" id="ip-workflow">
+                        <div class="ai-generator">
+                            ブライト<br>アイデア<br>本社
+                        </div>
+                        <!-- Dynamic elements will be added here -->
+                    </div>
+                    <div id="process-info" style="margin-top: 1rem;">
+                        <p><strong>🎬 現在の状態:</strong> プロジェクト開始前 - 「各クリエイターが創作開始」ボタンを押してストーリーを始めてください</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Section -->
+    <div id="summary" class="tab-content">
+        <div class="section">
+            <h2>🚀 Story Protocol：IP管理の「OS」としての革命的価値</h2>
+            
+            <div class="info-panel" style="background: linear-gradient(135deg, #e8f5e8 0%, #f0f8ff 100%); border-left: 4px solid var(--success-color);">
+                <h3>🎯 ブライト・アイデアが実現した成果</h3>
+                <p>
+                    Story Protocolの導入により、ブライト・アイデアは<strong>プロジェクト管理時間を80%削減</strong>し、
+                    <strong>クリエイターへの報酬分配を100%透明化</strong>することに成功しました。
+                    従来は数週間かかっていた権利関係の整理が、わずか数分で完了するようになりました。
+                </p>
+            </div>
+
+            <div class="layout">
+                <div>
+                    <h3>🏢 ビジネス領域での具体的インパクト</h3>
+                    
+                    <h4>💼 金融・フィンテック業界</h4>
+                    <ul class="summary-list">
+                        <li><strong>AI生成レポートの権利管理:</strong> 金融分析レポートの著作権を自動管理し、二次利用時の適切な対価を確保</li>
+                        <li><strong>マーケティング素材の透明な管理:</strong> 広告コンテンツの利用許諾を自動化し、コンプライアンス違反を防止</li>
+                        <li><strong>研究成果の価値最大化:</strong> 金融研究の知的財産を適切に収益化し、研究開発投資の回収を促進</li>
+                        <li><strong>グローバル展開の簡素化:</strong> 国境を越えた金融サービスの権利関係を統一的に管理</li>
+                    </ul>
+
+                    <h4>🎨 クリエイティブ・メディア業界</h4>
+                    <ul class="summary-list">
+                        <li><strong>協働プロジェクトの効率化:</strong> 複数クリエイターの貢献度を自動記録し、公正な報酬分配を実現</li>
+                        <li><strong>リミックス文化の促進:</strong> 二次創作を奨励しながら、原作者への適切な還元を保証</li>
+                        <li><strong>国際的な権利管理:</strong> 作品の海外展開時の複雑な権利処理を自動化</li>
+                        <li><strong>新しい収益モデル:</strong> 作品の利用履歴に基づく継続的な収益創出</li>
+                    </ul>
+
+                    <h4>🏭 製造・技術業界</h4>
+                    <ul class="summary-list">
+                        <li><strong>特許の共同管理:</strong> 複数企業による共同研究の知的財産を透明に管理</li>
+                        <li><strong>ライセンス料の自動計算:</strong> 技術利用に応じた適切なロイヤリティの即座な分配</li>
+                        <li><strong>イノベーションの促進:</strong> 既存技術の組み合わせによる新技術開発を奨励</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3>💰 革新的な価値分配モデル</h3>
+                    <div class="royalty-distribution">
+                        <div class="royalty-recipient">
+                            <h4>🎨 原作クリエイター</h4>
+                            <div class="royalty-amount">40%</div>
+                            <p>アイデア・基本設計</p>
+                        </div>
+                        <div class="royalty-recipient">
+                            <h4>🤝 協力クリエイター</h4>
+                            <div class="royalty-amount">30%</div>
+                            <p>実装・改良・監修</p>
+                        </div>
+                        <div class="royalty-recipient">
+                            <h4>🔄 リミックス作者</h4>
+                            <div class="royalty-amount">20%</div>
+                            <p>二次創作・派生作品</p>
+                        </div>
+                        <div class="royalty-recipient">
+                            <h4>🌐 プラットフォーム</h4>
+                            <div class="royalty-amount">10%</div>
+                            <p>技術基盤・運営</p>
+                        </div>
+                    </div>
+
+                    <div style="background-color: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                        <h4>📊 従来との比較データ</h4>
+                        <ul>
+                            <li><strong>契約処理時間:</strong> 2-4週間 → <span style="color: var(--success-color); font-weight: bold;">数分</span></li>
+                            <li><strong>権利関係の透明性:</strong> 30% → <span style="color: var(--success-color); font-weight: bold;">100%</span></li>
+                            <li><strong>ロイヤリティ分配速度:</strong> 3-6ヶ月 → <span style="color: var(--success-color); font-weight: bold;">即時</span></li>
+                            <li><strong>管理コスト:</strong> 収益の15-25% → <span style="color: var(--success-color); font-weight: bold;">2-3%</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-panel">
+                <h3>🌟 パラダイムシフト：「所有」から「成長」へ</h3>
+                <p>
+                    Story Protocolは単なるIP管理ツールではありません。<strong>IPの概念を「所有し、守る」ものから「繋がり、成長させる」ものへと根本的に変革</strong>します。
+                    これは、あらゆるIPアプリケーションが稼働するための、オープンで中立的な<strong>「オペレーティングシステム（OS）」</strong>なのです。
+                </p>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0;">
+                    <div style="background-color: #fff5f5; padding: 1rem; border-radius: 8px; border-left: 4px solid var(--danger-color);">
+                        <h4>🏰 従来の「城壁モデル」</h4>
+                        <ul>
+                            <li>IPを孤立させて保護</li>
+                            <li>限定的なアクセス許可</li>
+                            <li>中間業者による搾取</li>
+                            <li>創造性の制限</li>
+                        </ul>
+                    </div>
+                    <div style="background-color: #f0fff4; padding: 1rem; border-radius: 8px; border-left: 4px solid var(--success-color);">
+                        <h4>🌐 新しい「ネットワークモデル」</h4>
+                        <ul>
+                            <li>IPを繋げて価値創造</li>
+                            <li>オープンな協働促進</li>
+                            <li>公正な価値分配</li>
+                            <li>創造性の爆発的成長</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-panel" style="background: linear-gradient(135deg, #f3e5f5 0%, #e8f5e8 100%); border-left: 4px solid var(--primary-color);">
+                <h3>🔮 未来への展望：新しい創造経済の誕生</h3>
+                <p>
+                    <strong>2030年までに、Story Protocolは以下の変革を実現すると予想されます：</strong>
+                </p>
+                <ul>
+                    <li><strong>🌍 グローバルIP統合:</strong> 世界中のクリエイターが国境を越えて協働する統一プラットフォーム</li>
+                    <li><strong>🤖 AI創作の民主化:</strong> AI生成コンテンツの権利関係を自動管理し、人間とAIの協働を促進</li>
+                    <li><strong>💡 イノベーション加速:</strong> 既存IPの組み合わせによる新しい創造物の爆発的増加</li>
+                    <li><strong>⚖️ 公正な創造経済:</strong> すべてのクリエイターが適切な対価を受け取る透明な経済システム</li>
+                </ul>
+                <p>
+                    <strong>これは単なる技術革新ではなく、人類の創造活動そのものを変革する歴史的転換点です。</strong>
+                    クリエイターは国境や中間業者に縛られることなく、より自由に、より公正に、その創造性を爆発させることができる新しい時代の到来を意味します。
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentStep = 0;
+    let contentItems = [];
+    let nftTokens = [];
+    let licenseContracts = [];
+
+    function openTab(evt, tabName) {
+        var i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tab-content");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].classList.remove("active");
+        }
+        tablinks = document.getElementsByClassName("tab-button");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].classList.remove("active");
+        }
+        document.getElementById(tabName).classList.add("active");
+        evt.currentTarget.classList.add("active");
+    }
+
+    function startStep(step) {
+        currentStep = step;
+        updateStepIndicator();
+        
+        switch(step) {
+            case 1:
+                generateContent();
+                break;
+            case 2:
+                setupLicense();
+                break;
+            case 3:
+                verifyUsage();
+                break;
+            case 4:
+                distributeRoyalties();
+                break;
+        }
+        
+        updateButtons();
+    }
+
+    function updateStepIndicator() {
+        for (let i = 1; i <= 4; i++) {
+            const stepEl = document.getElementById(`step${i}`);
+            stepEl.classList.remove('active', 'completed');
+            
+            if (i === currentStep) {
+                stepEl.classList.add('active');
+            } else if (i < currentStep) {
+                stepEl.classList.add('completed');
+            }
+        }
+    }
+
+    function updateButtons() {
+        for (let i = 1; i <= 4; i++) {
+            const btn = document.getElementById(`btn${i}`);
+            btn.disabled = i > currentStep + 1;
+        }
+    }
+
+    function generateContent() {
+        const workflow = document.getElementById('ip-workflow');
+        
+        // Clear previous content
+        const existingContent = workflow.querySelectorAll('.content-item, .nft-token, .license-contract, .royalty-flow');
+        existingContent.forEach(el => el.remove());
+        
+        contentItems = [];
+        
+        const creators = [
+            {x: 150, y: 30, name: '田中さん', role: 'シナリオ', color: '#ff6b6b'},
+            {x: 150, y: 100, name: '佐藤さん', role: 'イラスト', color: '#4ecdc4'},
+            {x: 150, y: 170, name: '鈴木さん', role: 'ナレーション', color: '#45b7d1'},
+            {x: 150, y: 240, name: '山田さん', role: '動画編集', color: '#96ceb4'}
+        ];
+        
+        creators.forEach((creator, index) => {
+            setTimeout(() => {
+                const item = document.createElement('div');
+                item.className = 'content-item animate-slideInRight';
+                item.style.left = creator.x + 'px';
+                item.style.top = creator.y + 'px';
+                item.style.opacity = '1';
+                item.style.backgroundColor = creator.color;
+                item.style.color = 'white';
+                item.innerHTML = `${creator.name}<br><small>${creator.role}</small>`;
+                item.style.fontSize = '9px';
+                item.style.textAlign = 'center';
+                workflow.appendChild(item);
+                contentItems.push(item);
+                
+                // Create corresponding IP Asset
+                setTimeout(() => {
+                    const nft = document.createElement('div');
+                    nft.className = 'nft-token animate-fadeIn';
+                    nft.style.left = (creator.x + 80) + 'px';
+                    nft.style.top = (creator.y + 5) + 'px';
+                    nft.style.opacity = '1';
+                    nft.style.background = `linear-gradient(135deg, ${creator.color}, #20c997)`;
+                    nft.textContent = 'IPA';
+                    nft.title = `${creator.name}の${creator.role} IPアセット`;
+                    workflow.appendChild(nft);
+                    nftTokens.push(nft);
+                }, 500);
+            }, index * 300);
+        });
+        
+        updateStepInfo(1);
+        updateProcessInfo('🎨 各クリエイターが作品を創作し、Story ProtocolにIPアセット（IPA）として登録しました');
+    }
+
+    function setupLicense() {
+        updateStepInfo(2);
+        updateProcessInfo('🤝 協働ライセンスが自動設定され、各クリエイターの貢献度に基づく収益分配ルールが確立されました');
+        
+        const workflow = document.getElementById('ip-workflow');
+        const licenseInfo = document.getElementById('license-info');
+        licenseInfo.style.display = 'block';
+        
+        // Add license contracts
+        contentItems.forEach((item, index) => {
+            setTimeout(() => {
+                const contract = document.createElement('div');
+                contract.className = 'license-contract animate-fadeIn';
+                contract.style.left = (parseInt(item.style.left) + 150) + 'px';
+                contract.style.top = item.style.top;
+                contract.style.opacity = '1';
+                contract.innerHTML = '協働<br>ライセンス<br>契約';
+                contract.style.fontSize = '9px';
+                workflow.appendChild(contract);
+                licenseContracts.push(contract);
+                
+                // Add connection lines
+                setTimeout(() => {
+                    const line = document.createElement('div');
+                    line.style.position = 'absolute';
+                    line.style.left = (parseInt(item.style.left) + 60) + 'px';
+                    line.style.top = (parseInt(item.style.top) + 20) + 'px';
+                    line.style.width = '90px';
+                    line.style.height = '2px';
+                    line.style.background = 'var(--primary-color)';
+                    line.style.opacity = '0.7';
+                    line.className = 'animate-fadeIn';
+                    workflow.appendChild(line);
+                }, 300);
+            }, index * 200);
+        });
+    }
+
+    function verifyUsage() {
+        updateStepInfo(3);
+        updateProcessInfo('📺 完成した動画が公開され、利用状況が自動的に追跡されています。海外展開や二次利用も透明に管理されています');
+        
+        const workflow = document.getElementById('ip-workflow');
+        
+        // Add final video product
+        setTimeout(() => {
+            const finalProduct = document.createElement('div');
+            finalProduct.style.position = 'absolute';
+            finalProduct.style.left = '400px';
+            finalProduct.style.top = '120px';
+            finalProduct.style.width = '120px';
+            finalProduct.style.height = '80px';
+            finalProduct.style.background = 'linear-gradient(135deg, var(--success-color), #20c997)';
+            finalProduct.style.borderRadius = '8px';
+            finalProduct.style.border = '3px solid white';
+            finalProduct.style.display = 'flex';
+            finalProduct.style.alignItems = 'center';
+            finalProduct.style.justifyContent = 'center';
+            finalProduct.style.color = 'white';
+            finalProduct.style.fontSize = '12px';
+            finalProduct.style.fontWeight = 'bold';
+            finalProduct.style.textAlign = 'center';
+            finalProduct.innerHTML = '🎬<br>完成動画<br>IPアセット';
+            finalProduct.className = 'animate-fadeIn animate-glow';
+            workflow.appendChild(finalProduct);
+        }, 500);
+        
+        // Add usage indicators
+        licenseContracts.forEach((contract, index) => {
+            setTimeout(() => {
+                contract.classList.add('animate-pulse');
+                
+                // Add usage notifications
+                const usageTypes = ['🏢 企業利用', '🌍 海外展開', '📱 SNS拡散', '🎭 二次創作'];
+                const usage = document.createElement('div');
+                usage.style.position = 'absolute';
+                usage.style.left = (parseInt(contract.style.left) + 110) + 'px';
+                usage.style.top = (parseInt(contract.style.top) + 10 + (index * 15)) + 'px';
+                usage.style.background = 'var(--info-color)';
+                usage.style.color = 'white';
+                usage.style.padding = '3px 6px';
+                usage.style.borderRadius = '4px';
+                usage.style.fontSize = '8px';
+                usage.style.fontWeight = 'bold';
+                usage.textContent = usageTypes[index] || '利用検出';
+                usage.className = 'animate-fadeIn';
+                workflow.appendChild(usage);
+            }, index * 300);
+        });
+    }
+
+    function distributeRoyalties() {
+        updateStepInfo(4);
+        updateProcessInfo('💰 動画の利用収益が各クリエイターの貢献度に応じて自動分配されました。従来なら数ヶ月かかる処理が瞬時に完了！');
+        
+        const workflow = document.getElementById('ip-workflow');
+        
+        // Add individual royalty amounts for each creator
+        const royaltyAmounts = ['¥45,000', '¥38,000', '¥32,000', '¥25,000'];
+        const creatorNames = ['田中さん', '佐藤さん', '鈴木さん', '山田さん'];
+        
+        contentItems.forEach((item, index) => {
+            setTimeout(() => {
+                // Add royalty flow animation
+                const flow = document.createElement('div');
+                flow.className = 'royalty-flow';
+                flow.style.left = (parseInt(item.style.left) + 60) + 'px';
+                flow.style.top = (parseInt(item.style.top) + 20) + 'px';
+                flow.style.width = '150px';
+                flow.style.opacity = '1';
+                flow.style.background = 'linear-gradient(90deg, var(--success-color), transparent)';
+                workflow.appendChild(flow);
+                
+                // Add royalty amount display
+                setTimeout(() => {
+                    const amount = document.createElement('div');
+                    amount.style.position = 'absolute';
+                    amount.style.left = (parseInt(item.style.left) + 220) + 'px';
+                    amount.style.top = (parseInt(item.style.top) + 10) + 'px';
+                    amount.style.background = 'var(--success-color)';
+                    amount.style.color = 'white';
+                    amount.style.padding = '8px 12px';
+                    amount.style.borderRadius = '6px';
+                    amount.style.fontSize = '11px';
+                    amount.style.fontWeight = 'bold';
+                    amount.style.textAlign = 'center';
+                    amount.innerHTML = `${creatorNames[index]}<br>${royaltyAmounts[index]}`;
+                    amount.className = 'animate-fadeIn animate-glow';
+                    workflow.appendChild(amount);
+                }, 500);
+            }, index * 300);
+        });
+        
+        // Show total distribution summary
+        setTimeout(() => {
+            const complete = document.createElement('div');
+            complete.style.position = 'absolute';
+            complete.style.bottom = '20px';
+            complete.style.right = '20px';
+            complete.style.background = 'linear-gradient(135deg, var(--success-color), #20c997)';
+            complete.style.color = 'white';
+            complete.style.padding = '15px';
+            complete.style.borderRadius = '8px';
+            complete.style.fontSize = '12px';
+            complete.style.textAlign = 'center';
+            complete.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+            complete.innerHTML = '<strong>🎉 分配完了！</strong><br>総収益: ¥140,000<br>⚡ 瞬時に送金<br>📊 100% 透明';
+            complete.className = 'animate-fadeIn animate-glow';
+            workflow.appendChild(complete);
+            
+            // Add success message
+            setTimeout(() => {
+                const success = document.createElement('div');
+                success.style.position = 'absolute';
+                success.style.top = '10px';
+                success.style.right = '20px';
+                success.style.background = 'var(--info-color)';
+                success.style.color = 'white';
+                success.style.padding = '10px';
+                success.style.borderRadius = '6px';
+                success.style.fontSize = '10px';
+                success.innerHTML = '✅ 従来の管理コスト<br>85% 削減達成！';
+                success.className = 'animate-fadeIn';
+                workflow.appendChild(success);
+            }, 800);
+        }, 1500);
+    }
+
+    function updateStepInfo(step) {
+        const stepInfo = document.getElementById('step-info');
+        const infos = {
+            1: {
+                title: 'ステップ1: 創作＆IP登録 🎨',
+                content: '各クリエイターが自分の専門分野で作品を創作し、Story ProtocolにIPアセット（IPA）として登録します。従来のような複雑な契約書作成は不要で、作品の貢献度と権利関係が自動的に記録されます。',
+                tags: '<span class="tag tag-private">非公開</span> 創作過程、個人情報、制作ノウハウ<br><span class="tag tag-public">公開</span> 作品のハッシュ、貢献度、所有権証明、クリエイター情報'
+            },
+            2: {
+                title: 'ステップ2: 協働ライセンス設定 🤝',
+                content: '複数のクリエイターの作品を統合した協働ライセンスが自動設定されます。各クリエイターの貢献度に基づく収益分配ルールがスマートコントラクトに組み込まれ、透明で公正な権利管理が実現されます。',
+                tags: '<span class="tag tag-public">公開</span> ライセンス条件、利用料率、分配比率<br><span class="tag tag-private">非公開</span> 個別交渉内容、クリエイターの個人契約'
+            },
+            3: {
+                title: 'ステップ3: 利用追跡＆検証 📺',
+                content: '完成した動画コンテンツが様々な場面で利用される際、Story Protocolが自動的に利用状況を追跡します。企業利用、海外展開、SNS拡散、二次創作など、あらゆる利用形態が透明に管理されます。',
+                tags: '<span class="tag tag-public">公開</span> 利用記録、チェック結果、利用統計<br><span class="tag tag-private">非公開</span> 利用者の詳細情報、個別利用契約'
+            },
+            4: {
+                title: 'ステップ4: 自動価値分配 💰',
+                content: 'コンテンツの利用から生まれた収益が、事前に設定されたルールに従って各クリエイターに自動分配されます。従来なら数ヶ月かかる処理が瞬時に完了し、すべての取引が透明に記録されます。',
+                tags: '<span class="tag tag-public">公開</span> 分配履歴、金額詳細、取引記録<br><span class="tag tag-private">非公開</span> 個人の受取口座情報、税務関連情報'
+            }
+        };
+        
+        const info = infos[step];
+        stepInfo.innerHTML = `<strong>${info.title}</strong><br><br>${info.content}<br><br>${info.tags}`;
+    }
+
+    function updateProcessInfo(message) {
+        const processInfo = document.getElementById('process-info');
+        processInfo.innerHTML = `<p><strong>現在の状態:</strong> ${message}</p>`;
+    }
+
+    function resetDemo() {
+        currentStep = 0;
+        const workflow = document.getElementById('ip-workflow');
+        
+        // Remove all dynamic elements
+        const dynamicElements = workflow.querySelectorAll('.content-item, .nft-token, .license-contract, .royalty-flow, div:not(.ai-generator)');
+        dynamicElements.forEach(el => el.remove());
+        
+        contentItems = [];
+        nftTokens = [];
+        licenseContracts = [];
+        
+        // Hide license info
+        document.getElementById('license-info').style.display = 'none';
+        
+        updateStepIndicator();
+        updateButtons();
+        updateStepInfo(1);
+        updateProcessInfo('初期状態 - 「AIコンテンツ生成」ボタンを押して開始してください');
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        resetDemo();
+    });
+</script>
+
+</body>
+</html>

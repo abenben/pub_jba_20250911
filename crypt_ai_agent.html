@@ -1,0 +1,1315 @@
+<!--
+README: オンチェーンAIエージェントの自律的な動作 可視化デモ（単一HTML / オフライン）
+使い方:
+  1) このファイルをブラウザで開きます。
+  2) 上部のタブで「パラダイム比較」「インタラクティブデモ」「詳細解説」を切り替えます。
+  3) パラダイム比較では、従来の自動化ツールとオンチェーンAIエージェントの根本的な違いを視覚的に理解できます。
+  4) インタラクティブデモでは、AIエージェントの自律的な動作を体験できます。
+注意: これは教育用の概念実証デモです。実際のブロックチェーン実装ではありません。
+-->
+<!doctype html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>従来の自動化 vs オンチェーンAIエージェント - 革新的パラダイムの理解</title>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --background-color: #f8f9fa;
+            --text-color: #212529;
+            --border-color: #dee2e6;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+            --warning-color: #ffc107;
+            --public-color: #28a745;
+            --private-color: #dc3545;
+            --code-bg: #e9ecef;
+            --animation-duration: 0.8s;
+            --traditional-color: #ff6b6b;
+            --ai-agent-color: #4ecdc4;
+            --gradient-traditional: linear-gradient(135deg, #ff6b6b, #ffa726);
+            --gradient-ai-agent: linear-gradient(135deg, #4ecdc4, #45b7d1);
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            opacity: 0.3;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 2.2rem;
+            font-weight: 700;
+            position: relative;
+            z-index: 1;
+        }
+        header p {
+            margin: 0.5rem 0 0 0;
+            font-size: 1.1rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+        .tabs {
+            display: flex;
+            background-color: #f1f1f1;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .tab-button {
+            background-color: inherit;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 14px 16px;
+            transition: 0.3s;
+            font-size: 1rem;
+            flex-grow: 1;
+        }
+        .tab-button:hover {
+            background-color: #ddd;
+        }
+        .tab-button.active {
+            background-color: #ccc;
+            border-bottom: 3px solid var(--primary-color);
+        }
+        .tab-content {
+            display: none;
+            padding: 20px;
+            border-top: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .section {
+            margin-bottom: 2rem;
+        }
+        .section h2 {
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+            color: var(--primary-color);
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+        .control-panel {
+            background-color: var(--background-color);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        .visualization {
+            background-color: #fff;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            min-height: 400px;
+        }
+        .button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .button:disabled {
+            background-color: var(--secondary-color);
+            cursor: not-allowed;
+        }
+        .button.success {
+            background-color: var(--success-color);
+        }
+        .button.danger {
+            background-color: var(--danger-color);
+        }
+        .tag {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin: 2px;
+        }
+        .tag-public {
+            background-color: var(--success-color);
+            color: white;
+        }
+        .tag-private {
+            background-color: var(--danger-color);
+            color: white;
+        }
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        .comparison-table th,
+        .comparison-table td {
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            text-align: left;
+        }
+        .comparison-table th {
+            background-color: var(--background-color);
+            font-weight: bold;
+        }
+        .comparison-table .traditional {
+            background-color: #fff5f5;
+        }
+        .comparison-table .ai-agent {
+            background-color: #f0fff4;
+        }
+        .animated {
+            animation-duration: var(--animation-duration);
+            animation-fill-mode: both;
+        }
+        .fadeIn {
+            animation-name: fadeIn;
+        }
+        .pulse {
+            animation-name: pulse;
+            animation-duration: 2s;
+            animation-iteration-count: infinite;
+        }
+        .slideInRight {
+            animation-name: slideInRight;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+        .step {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 0 5px;
+            background-color: var(--background-color);
+            border: 2px solid var(--border-color);
+        }
+        .step.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        .step.completed {
+            background-color: var(--success-color);
+            color: white;
+            border-color: var(--success-color);
+        }
+        .agent-dashboard {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 8px;
+            padding: 20px;
+            color: white;
+            margin: 10px 0;
+        }
+        .market-data {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .data-card {
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .transaction-log {
+            background-color: var(--code-bg);
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .audit-trail {
+            background: linear-gradient(45deg, #f0f8ff, #e6f3ff);
+            border: 1px solid var(--info-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .security-indicator {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin: 2px 4px;
+        }
+        .security-transparent {
+            background-color: rgba(40, 167, 69, 0.1);
+            color: var(--success-color);
+            border: 1px solid rgba(40, 167, 69, 0.3);
+        }
+        .security-auditable {
+            background-color: rgba(23, 162, 184, 0.1);
+            color: var(--info-color);
+            border: 1px solid rgba(23, 162, 184, 0.3);
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--info-color));
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        .paradigm-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 2rem 0;
+        }
+        .paradigm-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        .paradigm-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+        .paradigm-card.traditional::before {
+            background: var(--gradient-traditional);
+        }
+        .paradigm-card.ai-agent::before {
+            background: var(--gradient-ai-agent);
+        }
+        .paradigm-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .paradigm-title.traditional {
+            color: var(--traditional-color);
+        }
+        .paradigm-title.ai-agent {
+            color: var(--ai-agent-color);
+        }
+        .architecture-diagram {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            text-align: center;
+            position: relative;
+        }
+        .diagram-node {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            margin: 0.25rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            position: relative;
+        }
+        .diagram-node.server {
+            background: var(--gradient-traditional);
+            color: white;
+        }
+        .diagram-node.blockchain {
+            background: var(--gradient-ai-agent);
+            color: white;
+        }
+        .diagram-node.api {
+            background: #e9ecef;
+            color: var(--text-color);
+            border: 2px solid var(--border-color);
+        }
+        .diagram-arrow {
+            display: inline-block;
+            margin: 0 0.5rem;
+            font-size: 1.2rem;
+            color: var(--secondary-color);
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            padding: 0.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .feature-list li::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .feature-list.traditional li::before {
+            background: var(--traditional-color);
+        }
+        .feature-list.ai-agent li::before {
+            background: var(--ai-agent-color);
+        }
+        .toggle-container {
+            display: flex;
+            justify-content: center;
+            margin: 2rem 0;
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 300px;
+            height: 50px;
+            background: #e9ecef;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .toggle-switch::before {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 44px;
+            height: 44px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .toggle-switch.active::before {
+            transform: translateX(246px);
+        }
+        .toggle-switch.active {
+            background: var(--gradient-ai-agent);
+        }
+        .toggle-labels {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            pointer-events: none;
+        }
+        .toggle-labels .left {
+            color: var(--traditional-color);
+        }
+        .toggle-labels .right {
+            color: white;
+        }
+        .interactive-demo {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        .demo-scenario {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+        .ai-reasoning {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            border-left: 4px solid var(--info-color);
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .economic-activity {
+            background: linear-gradient(135deg, #e8f5e8, #c8e6c9);
+            border-left: 4px solid var(--success-color);
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .wallet-display {
+            background: #1a1a1a;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+        .detailed-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        .concept-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+        .concept-card {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 8px;
+            padding: 1.5rem;
+            border-left: 4px solid var(--primary-color);
+        }
+        .concept-card h4 {
+            color: var(--primary-color);
+            margin-top: 0;
+        }
+        .future-vision {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            text-align: center;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+        .metric-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        @media (max-width: 768px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+            .market-data {
+                grid-template-columns: 1fr;
+            }
+            .paradigm-comparison {
+                grid-template-columns: 1fr;
+            }
+            .toggle-switch {
+                width: 250px;
+            }
+            .toggle-switch::before {
+                width: 40px;
+                height: 40px;
+                top: 5px;
+                left: 5px;
+            }
+            .toggle-switch.active::before {
+                transform: translateX(200px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>従来の自動化 vs オンチェーンAIエージェント</h1>
+            <p>革新的パラダイムの理解 - 単なる効率化から自律的価値創造へ</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-button active" onclick="openTab(event, 'paradigm')">パラダイム比較</button>
+            <button class="tab-button" onclick="openTab(event, 'demo')">インタラクティブデモ</button>
+            <button class="tab-button" onclick="openTab(event, 'detailed')">詳細解説</button>
+        </div>
+
+        <div id="paradigm" class="tab-content active">
+            <div class="section">
+                <h2>🔄 根本的パラダイムの違い</h2>
+                <p>従来の自動化ツールとオンチェーンAIエージェントは、単なる技術の進歩ではなく、<strong>全く異なる思想とアーキテクチャ</strong>を持つ革新的存在です。</p>
+                
+                <div class="toggle-container">
+                    <div class="toggle-switch" onclick="toggleParadigm()" id="paradigm-toggle">
+                        <div class="toggle-labels">
+                            <span class="left">従来の自動化</span>
+                            <span class="right">オンチェーンAI</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="paradigm-comparison">
+                    <div class="paradigm-card traditional">
+                        <div class="paradigm-title traditional">
+                            🔧 従来の自動化ツール
+                            <small style="font-size: 0.8rem; opacity: 0.7;">（IFTTT, Zapier, RPA）</small>
+                        </div>
+                        
+                        <div class="architecture-diagram">
+                            <div class="diagram-node server">中央サーバー</div>
+                            <div class="diagram-arrow">→</div>
+                            <div class="diagram-node api">API連携</div>
+                            <div class="diagram-arrow">→</div>
+                            <div class="diagram-node api">Webサービス</div>
+                        </div>
+
+                        <h4>🎯 パラダイム: 指示の実行</h4>
+                        <p><strong>「もしAが起きたら、Bを実行する」</strong><br>
+                        事前に定義されたルールに厳密に従う効率化ツール</p>
+
+                        <h4>🏗️ アーキテクチャ特徴</h4>
+                        <ul class="feature-list traditional">
+                            <li>中央集権的サーバーで実行</li>
+                            <li>ルールベースの固定ロジック</li>
+                            <li>API依存の連携システム</li>
+                            <li>運営企業への信頼が必要</li>
+                            <li>ブラックボックス化された処理</li>
+                        </ul>
+
+                        <h4>💼 代表例</h4>
+                        <ul class="feature-list traditional">
+                            <li>IFTTT: 「スマートスピーカーに『おやすみ』→電気を消す」</li>
+                            <li>Zapier: 「Salesforceに新リード→Slackで通知」</li>
+                            <li>RPA: 「請求書データをExcelから会計システムへ転記」</li>
+                        </ul>
+                    </div>
+
+                    <div class="paradigm-card ai-agent">
+                        <div class="paradigm-title ai-agent">
+                            🤖 オンチェーンAIエージェント
+                            <small style="font-size: 0.8rem; opacity: 0.7;">（自律的デジタル生命体）</small>
+                        </div>
+                        
+                        <div class="architecture-diagram">
+                            <div class="diagram-node blockchain">分散ネットワーク</div>
+                            <div class="diagram-arrow">→</div>
+                            <div class="diagram-node blockchain">スマートコントラクト</div>
+                            <div class="diagram-arrow">→</div>
+                            <div class="diagram-node blockchain">価値交換</div>
+                        </div>
+
+                        <h4>🎯 パラダイム: 目標の追求</h4>
+                        <p><strong>「目標達成のために自ら計画・実行・学習」</strong><br>
+                        自律的に価値を創造し交換する新しい経済主体</p>
+
+                        <h4>🏗️ アーキテクチャ特徴</h4>
+                        <ul class="feature-list ai-agent">
+                            <li>分散型ブロックチェーンで実行</li>
+                            <li>AIによる動的な意思決定</li>
+                            <li>トラストレスな直接取引</li>
+                            <li>コードとコンセンサスによる保証</li>
+                            <li>完全に透明で検証可能</li>
+                        </ul>
+
+                        <h4>💼 革新的応用例</h4>
+                        <ul class="feature-list ai-agent">
+                            <li>DeFi: 市場非効率性を発見して自動裁定取引</li>
+                            <li>DAO: 組織利益最大化のための自動投票</li>
+                            <li>Web3ゲーム: 独自目標を持つ自律的NPC</li>
+                            <li>DeSci: 有望研究への自動資金提供</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="interactive-demo">
+                    <h3>🔍 核心的な違いの可視化</h3>
+                    <div id="comparison-visualization">
+                        <div class="demo-scenario">
+                            <h4>シナリオ: 投資判断の自動化</h4>
+                            <div class="paradigm-comparison">
+                                <div style="background: #fff5f5; padding: 1rem; border-radius: 8px;">
+                                    <h5 style="color: var(--traditional-color);">従来の自動化ツール</h5>
+                                    <p><strong>固定ルール:</strong> 「ETH価格が$2000を下回ったら売却」</p>
+                                    <p><strong>実行:</strong> 条件に合致すると機械的に売却</p>
+                                    <p><strong>問題:</strong> 市場の文脈や将来予測を考慮できない</p>
+                                </div>
+                                <div style="background: #f0fff4; padding: 1rem; border-radius: 8px;">
+                                    <h5 style="color: var(--ai-agent-color);">オンチェーンAIエージェント</h5>
+                                    <p><strong>目標設定:</strong> 「ポートフォリオ価値の最大化」</p>
+                                    <p><strong>自律判断:</strong> 市場データ、ニュース、トレンドを総合分析</p>
+                                    <p><strong>動的実行:</strong> 最適なタイミングと戦略を自ら決定</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="demo" class="tab-content">
+            <div class="section">
+                <h2>🚀 インタラクティブデモ: 自律的AIエージェントの動作</h2>
+                <p>実際のオンチェーンAIエージェントがどのように自律的に判断し、行動するかを体験してください。</p>
+                
+                <div class="step-indicator">
+                    <div class="step active" id="step1">1. 初期化</div>
+                    <div class="step" id="step2">2. 自律分析</div>
+                    <div class="step" id="step3">3. 意思決定</div>
+                    <div class="step" id="step4">4. 実行・記録</div>
+                </div>
+
+                <div class="layout">
+                    <div class="control-panel">
+                        <h3>🤖 AIエージェント制御パネル</h3>
+                        
+                        <div id="control-step1" class="control-step">
+                            <h4>ステップ1: エージェント初期化</h4>
+                            <p>AIエージェントに高レベルな目標を設定します。エージェントは具体的な実行方法を自ら決定します。</p>
+                            
+                            <div class="wallet-display">
+                                <div>🔐 AIエージェント ウォレット</div>
+                                <div>Address: 0x742d35Cc6634C0532925a3b8D4C0532925a3b8D4</div>
+                                <div>Balance: 50.0 ETH | 100,000 USDC</div>
+                            </div>
+                            
+                            <div style="margin: 15px 0;">
+                                <label><strong>目標設定:</strong></label>
+                                <select id="agent-goal" style="width: 100%; padding: 8px; margin-top: 5px;">
+                                    <option>ポートフォリオ価値の最大化（リスク許容度: 中）</option>
+                                    <option>安定収益の確保（年利8%目標）</option>
+                                    <option>市場機会の自動発見と活用</option>
+                                    <option>DeFiプロトコル間の最適化</option>
+                                </select>
+                            </div>
+                            
+                            <div style="margin: 15px 0;">
+                                <label><strong>制約条件:</strong></label>
+                                <div style="margin-top: 5px;">
+                                    <input type="checkbox" id="compliance" checked> 規制コンプライアンス遵守<br>
+                                    <input type="checkbox" id="gas-optimization" checked> ガス代最適化<br>
+                                    <input type="checkbox" id="slippage-protection" checked> スリッページ保護
+                                </div>
+                            </div>
+                            
+                            <button class="button" onclick="nextStep(2)">エージェント起動</button>
+                        </div>
+
+                        <div id="control-step2" class="control-step" style="display: none;">
+                            <h4>ステップ2: 自律的市場分析</h4>
+                            <p>AIエージェントが複数のデータソースを分析し、最適な戦略を立案しています。</p>
+                            
+                            <div class="ai-reasoning">
+                                <h5>🧠 AI推論プロセス</h5>
+                                <div id="reasoning-log">
+                                    <div>📊 オンチェーンデータ分析中...</div>
+                                </div>
+                            </div>
+                            
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="analysis-progress"></div>
+                            </div>
+                            
+                            <button class="button" onclick="nextStep(3)" id="analysis-btn" disabled>分析中...</button>
+                        </div>
+
+                        <div id="control-step3" class="control-step" style="display: none;">
+                            <h4>ステップ3: 自律的意思決定</h4>
+                            <p>AIエージェントが分析結果に基づいて最適な行動を決定しました。</p>
+                            
+                            <div class="ai-reasoning">
+                                <h5>🎯 決定された戦略</h5>
+                                <div id="decision-summary">
+                                    <div><strong>選択された行動:</strong> <span id="chosen-action">Uniswap V3での流動性提供</span></div>
+                                    <div><strong>予想収益:</strong> <span id="expected-return">年利12.3%</span></div>
+                                    <div><strong>リスク評価:</strong> <span id="risk-assessment">中程度</span></div>
+                                    <div><strong>実行タイミング:</strong> <span id="execution-timing">即座（ガス代最適）</span></div>
+                                </div>
+                            </div>
+                            
+                            <div class="economic-activity">
+                                <h5>💰 経済活動の詳細</h5>
+                                <div>• ETH-USDC ペアに30 ETH + 75,000 USDC を投入</div>
+                                <div>• 価格レンジ: $2,400 - $2,600 (現在価格周辺)</div>
+                                <div>• 予想手数料収入: 0.3% + 流動性マイニング報酬</div>
+                            </div>
+                            
+                            <button class="button success" onclick="nextStep(4)">戦略実行を承認</button>
+                        </div>
+
+                        <div id="control-step4" class="control-step" style="display: none;">
+                            <h4>ステップ4: 実行と透明な記録</h4>
+                            <p>AIエージェントが戦略を実行し、全ての行動がブロックチェーンに記録されました。</p>
+                            
+                            <div class="wallet-display">
+                                <div>📈 実行結果</div>
+                                <div>New Balance: 20.0 ETH | 25,000 USDC | LP Tokens: 105.7</div>
+                                <div>Estimated APY: 12.3% | Gas Used: 0.0045 ETH</div>
+                            </div>
+                            
+                            <div class="audit-trail">
+                                <h5>🔍 完全な監査証跡</h5>
+                                <p>✅ <strong>意思決定プロセス:</strong> 全推論ステップがオンチェーンに記録</p>
+                                <p>✅ <strong>取引実行:</strong> Tx Hash: 0x8f2a1b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a</p>
+                                <p>✅ <strong>ガス最適化:</strong> 35%削減（予測ガス vs 実際使用量）</p>
+                                <p>✅ <strong>コンプライアンス:</strong> 全規制要件を自動チェック済み</p>
+                                <p>✅ <strong>リスク管理:</strong> ポジションサイズ自動調整済み</p>
+                            </div>
+                            
+                            <button class="button" onclick="resetDemo()">新しいシナリオを開始</button>
+                        </div>
+                    </div>
+
+                    <div class="visualization">
+                        <div id="viz-step1" class="viz-step">
+                            <div class="agent-dashboard">
+                                <h4>🤖 AIエージェント: 初期化完了</h4>
+                                <div class="market-data">
+                                    <div class="data-card">
+                                        <div>ステータス</div>
+                                        <div>待機中</div>
+                                    </div>
+                                    <div class="data-card">
+                                        <div>接続プロトコル</div>
+                                        <div>15個</div>
+                                    </div>
+                                    <div class="data-card">
+                                        <div>監視ペア</div>
+                                        <div>127個</div>
+                                    </div>
+                                    <div class="data-card">
+                                        <div>AI信頼度</div>
+                                        <div>98.7%</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="viz-step2" class="viz-step" style="display: none;">
+                            <div class="agent-dashboard">
+                                <h4>🤖 AIエージェント: 深層分析中</h4>
+                                <div class="market-data">
+                                    <div class="data-card">
+                                        <div>ETH価格</div>
+                                        <div id="eth-price-demo">$2,485</div>
+                                    </div>
+                                    <div class="data-card">
+                                        <div>市場ボラティリティ</div>
+                                        <div id="volatility">18.3%</div>
+                                    </div>
+                                    <div class="data-card">
+                                        <div>DeFi TVL</div>
+                                        <div id="tvl">$45.2B</div>
+                                    </div>
+                                    <div class="data-card">
+                                        <div>最適機会</div>
+                                        <div id="opportunities">3件発見</div>
+                                    </div>
+                                </div>
+                                
+                                <div style="margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,0.1); border-radius: 8px;">
+                                    <h5>📊 リアルタイム分析</h5>
+                                    <div id="analysis-details">
+                                        <div>• Uniswap V3 流動性ギャップ検出</div>
+                                        <div>• Compound 貸出金利上昇トレンド</div>
+                                        <div>• Aave フラッシュローン機会</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="viz-step3" class="viz-step" style="display: none;">
+                            <div class="agent-dashboard">
+                                <h4>🤖 AIエージェント: 戦略決定完了</h4>
+                                <div class="transaction-log">
+                                    <div>🧠 2024-09-09 13:52:15 - 多次元分析完了</div>
+                                    <div>📊 2024-09-09 13:52:16 - リスク・リターン最適化</div>
+                                    <div>🎯 2024-09-09 13:52:17 - 戦略選択: Uniswap V3 LP</div>
+                                    <div>⚡ 2024-09-09 13:52:18 - ガス価格最適化</div>
+                                    <div>✅ 2024-09-09 13:52:19 - 実行準備完了</div>
+                                </div>
+                                
+                                <div style="margin-top: 1rem; padding: 1rem; background: rgba(40, 167, 69, 0.1); border-radius: 8px;">
+                                    <h5>🎯 選択理由</h5>
+                                    <div>現在の市場条件下で最も効率的な収益機会。価格レンジ内での手数料収入と流動性マイニング報酬の組み合わせが最適。</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="viz-step4" class="viz-step" style="display: none;">
+                            <div class="agent-dashboard">
+                                <h4>🤖 AIエージェント: 実行完了</h4>
+                                <div class="audit-trail">
+                                    <h5>🔗 ブロックチェーン記録</h5>
+                                    <p><span class="tag-public">公開</span> Block: #18,234,567</p>
+                                    <p><span class="tag-public">公開</span> Gas Used: 234,567 (35% 最適化)</p>
+                                    <p><span class="tag-public">公開</span> LP Position: ETH-USDC 0.3%</p>
+                                    <p><span class="tag-public">公開</span> Expected APY: 12.3%</p>
+                                </div>
+                                
+                                <div style="margin-top: 1rem; padding: 1rem; background: rgba(23, 162, 184, 0.1); border-radius: 8px;">
+                                    <h5>🔄 継続監視</h5>
+                                    <div>AIエージェントは24/7でポジションを監視し、市場条件の変化に応じて自動的に最適化を継続します。</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="detailed" class="tab-content">
+            <div class="section">
+                <h2>📚 詳細解説: 自動化の先にある「自律化」の世界</h2>
+                <p>従来の自動化ツールが<strong>人間の作業を代替し、効率を極限まで高める</strong>ことを目指してきたのに対し、オンチェーンAIエージェントは、<strong>経済活動に参加する新たな主体そのものを生み出す</strong>可能性を秘めています。</p>
+            </div>
+
+            <div class="detailed-section">
+                <h3>🔍 核心的な違いの詳細分析</h3>
+                
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>比較項目</th>
+                            <th>従来の自動化ツール</th>
+                            <th>オンチェーンAIエージェント</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>パラダイム</strong></td>
+                            <td class="traditional">指示の実行 (Instruction Execution)</td>
+                            <td class="ai-agent">目標の追求 (Goal Seeking)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>実行環境</strong></td>
+                            <td class="traditional">中央集権サーバー (AWS, Google Cloudなど)</td>
+                            <td class="ai-agent">分散型ネットワーク (ブロックチェーン)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>意思決定</strong></td>
+                            <td class="traditional">ルールベース (人間が定義した固定ロジック)</td>
+                            <td class="ai-agent">AIベース (データに基づく動的な推論・予測)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>信頼の基盤</strong></td>
+                            <td class="traditional">運営企業への信頼 (Trust)</td>
+                            <td class="ai-agent">コードとコンセンサスへの信頼不要性 (Trustlessness)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>自律性</strong></td>
+                            <td class="traditional">限定的 (トリガーとアクションの範囲内)</td>
+                            <td class="ai-agent">高度 (自己学習・自己改善の可能性)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>データの扱い</strong></td>
+                            <td class="traditional">プライベート (企業のサーバー内)</td>
+                            <td class="ai-agent">パブリック (ブロックチェーン上で公開・検証可能)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>経済活動</strong></td>
+                            <td class="traditional">不可 (API連携のみ)</td>
+                            <td class="ai-agent">可能 (暗号資産ウォレットを保有し、価値交換を行う)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>コスト構造</strong></td>
+                            <td class="traditional">サブスクリプション料金</td>
+                            <td class="ai-agent">トランザクション手数料 (ガス代)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>透明性</strong></td>
+                            <td class="traditional">低い (ブラックボックス)</td>
+                            <td class="ai-agent">非常に高い (コードと履歴が公開)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="detailed-section">
+                <h3>🏗️ 構成要素の詳細</h3>
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h4>🧠 AIモデル</h4>
+                        <p>意思決定の核となる部分。市場予測、戦略立案、データ分析などを行います。機械学習やニューラルネットワークを用いて、状況に応じた最適な行動を動的に決定します。</p>
+                    </div>
+                    <div class="concept-card">
+                        <h4>📜 スマートコントラクト</h4>
+                        <p>AIの意思決定を実行に移すためのプログラム。資産の移動、DeFiプロトコルとの対話、投票などを自動執行します。ブロックチェーン上で不変かつ透明に動作します。</p>
+                    </div>
+                    <div class="concept-card">
+                        <h4>🔗 オラクル</h4>
+                        <p>ブロックチェーン外の現実世界のデータ（例：株価、天気、ニュース）をブロックチェーン上に安全に取り込むための仕組み。AIエージェントの判断材料を提供します。</p>
+                    </div>
+                    <div class="concept-card">
+                        <h4>⚡ 実行トリガー</h4>
+                        <p>特定の条件（時間、価格変動など）を監視し、エージェントの動作を開始させる仕組み。24時間365日の自律的な監視と実行を可能にします。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="detailed-section">
+                <h3>🎯 革新的ユースケース</h3>
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h4>💰 DeFi (分散型金融)</h4>
+                        <p>市場の非効率性を発見して自動で裁定取引を行ったり、複数のレンディングプロトコルの金利を常に監視して最も有利な場所に資産を自動で移動させるエージェント。</p>
+                    </div>
+                    <div class="concept-card">
+                        <h4>🏛️ DAO (分散型自律組織)</h4>
+                        <p>ガバナンス提案を分析し、組織の利益が最大化されるように自動で投票を行うエージェント。複雑な提案内容を理解し、長期的な影響を考慮した判断を行います。</p>
+                    </div>
+                    <div class="concept-card">
+                        <h4>🎮 Web3ゲーム/メタバース</h4>
+                        <p>プレイヤーと対話しながら独自の目標を持って行動し、経済活動も行う自律的なNPC（ノンプレイヤーキャラクター）。ゲーム内経済に真の動的要素をもたらします。</p>
+                    </div>
+                    <div class="concept-card">
+                        <h4>🔬 分散型科学 (DeSci)</h4>
+                        <p>科学研究のデータを分析し、有望な研究プロジェクトに自動で資金を提供するエージェント。研究の質と潜在的インパクトを客観的に評価します。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="detailed-section">
+                <h3>⚖️ メリットと課題</h3>
+                <div class="paradigm-comparison">
+                    <div style="background: #e8f5e8; padding: 1.5rem; border-radius: 8px;">
+                        <h4 style="color: var(--success-color);">✅ メリット</h4>
+                        <ul>
+                            <li><strong>高い自律性と自己主権</strong>: 人間の介入なしに24時間365日、自律的に目標を追求</li>
+                            <li><strong>透明性と耐改ざん性</strong>: ブロックチェーンの特性により、全ての行動が検証可能で不正が困難</li>
+                            <li><strong>トラストレスな経済活動</strong>: 中央集権的な仲介者を必要とせず、P2Pで価値交換が可能</li>
+                            <li><strong>Composability（組み合わせ可能性）</strong>: 他のDeFiプロトコルやdAppsと自由に連携し、新しいサービスを構築</li>
+                        </ul>
+                    </div>
+                    <div style="background: #fff5f5; padding: 1.5rem; border-radius: 8px;">
+                        <h4 style="color: var(--danger-color);">⚠️ 課題</h4>
+                        <ul>
+                            <li><strong>技術的な複雑さ</strong>: 開発・運用には高度な専門知識が必要</li>
+                            <li><strong>コストとスケーラビリティ</strong>: ブロックチェーン上での計算（特にAI関連）は高コスト（ガス代）で、処理速度にも限界</li>
+                            <li><strong>AIの予測不可能性</strong>: AIの判断が常に最適であるとは限らず、予期せぬ行動を取るリスク（アラインメント問題）</li>
+                            <li><strong>セキュリティリスク</strong>: スマートコントラクトの脆弱性を突かれると、資産が盗まれるリスク</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="future-vision">
+                <h3>🚀 未来展望：自動化の先にある「自律化」の世界</h3>
+                <p>将来的には、人間、DAO、そして無数のAIエージェントがブロックチェーンというオープンな経済圏の上で相互作用し、これまで想像もできなかったような複雑で自律的な経済システムが生まれるかもしれません。</p>
+                
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value">自律的な企業</div>
+                        <div>人間の従業員をほとんど持たず、AIエージェント群が製品開発から顧客サポートまでを自律運営するDAO</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">パーソナルAI</div>
+                        <div>各個人が自身のAIエージェントを持ち、資産運用から仕事の受発注までを代行</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">機械間経済</div>
+                        <div>自動運転車がAIエージェントとして他の車と通信し、充電権やルート情報を取引</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">デジタル生命体</div>
+                        <div>自律的に価値を創造し、交換し、増殖していく新しい経済主体の誕生</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="detailed-section">
+                <h3>🎯 結論</h3>
+                <p>従来の自動化ツールとオンチェーンAIエージェントは、連続した進化の線上にあるのではなく、<strong>根本的に異なる思想を持つテクノロジー</strong>です。</p>
+                
+                <div class="paradigm-comparison">
+                    <div style="background: #fff5f5; padding: 1.5rem; border-radius: 8px; border-left: 4px solid var(--traditional-color);">
+                        <h4>🔧 従来の自動化ツール</h4>
+                        <p>現在のWeb2.0の世界において、<strong>明確に定義されたタスクを効率的に処理する</strong>ための強力なソリューションであり続けます。その手軽さと安定性は、多くの業務効率化において依然として不可欠です。</p>
+                    </div>
+                    <div style="background: #f0fff4; padding: 1.5rem; border-radius: 8px; border-left: 4px solid var(--ai-agent-color);">
+                        <h4>🤖 オンチェーンAIエージェント</h4>
+                        <p>Web3.0の時代における<strong>新しい経済主体</strong>としての可能性を切り拓く破壊的なイノベーションです。それは単なる「ツール」ではなく、自律的に価値を創造し、交換し、増殖していく「<strong>デジタル生命体</strong>」に近い存在と言えるでしょう。</p>
+                    </div>
+                </div>
+                
+                <p style="margin-top: 2rem; font-size: 1.1rem; text-align: center; font-weight: 600;">
+                    長期的には、オンチェーンAIエージェントがもたらす「自律化」の波は、私たちが考える「仕事」「組織」「経済」のあり方を根底から覆すほどのインパクトを秘めています。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 1;
+        let paradigmMode = 'traditional';
+
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].classList.remove("active");
+            }
+            tablinks = document.getElementsByClassName("tab-button");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].classList.remove("active");
+            }
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+
+        function toggleParadigm() {
+            const toggle = document.getElementById('paradigm-toggle');
+            toggle.classList.toggle('active');
+            
+            if (toggle.classList.contains('active')) {
+                paradigmMode = 'ai-agent';
+                updateComparisonVisualization();
+            } else {
+                paradigmMode = 'traditional';
+                updateComparisonVisualization();
+            }
+        }
+
+        function updateComparisonVisualization() {
+            const viz = document.getElementById('comparison-visualization');
+            if (paradigmMode === 'traditional') {
+                viz.innerHTML = `
+                    <div class="demo-scenario">
+                        <h4>シナリオ: 投資判断の自動化 - 従来の自動化ツール</h4>
+                        <div style="background: #fff5f5; padding: 1.5rem; border-radius: 8px; border-left: 4px solid var(--traditional-color);">
+                            <h5 style="color: var(--traditional-color);">🔧 従来の自動化ツール（例：Zapier + 取引所API）</h5>
+                            <p><strong>設定ルール:</strong> 「ETH価格が$2000を下回ったら全て売却」</p>
+                            <p><strong>実行プロセス:</strong></p>
+                            <ul>
+                                <li>価格監視API → 条件チェック → 売却API実行</li>
+                                <li>中央サーバーで処理、ログは企業内に保存</li>
+                                <li>ルール変更には人間の手動設定が必要</li>
+                            </ul>
+                            <p><strong>限界:</strong> 市場の文脈、将来予測、複雑な判断は不可能</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                viz.innerHTML = `
+                    <div class="demo-scenario">
+                        <h4>シナリオ: 投資判断の自動化 - オンチェーンAIエージェント</h4>
+                        <div style="background: #f0fff4; padding: 1.5rem; border-radius: 8px; border-left: 4px solid var(--ai-agent-color);">
+                            <h5 style="color: var(--ai-agent-color);">🤖 オンチェーンAIエージェント</h5>
+                            <p><strong>目標設定:</strong> 「ポートフォリオ価値の長期最大化（リスク許容度: 中）」</p>
+                            <p><strong>自律実行プロセス:</strong></p>
+                            <ul>
+                                <li>多次元データ分析（価格、ボラティリティ、ニュース、オンチェーン指標）</li>
+                                <li>AI推論による最適戦略の動的決定</li>
+                                <li>スマートコントラクトによる透明な実行</li>
+                                <li>全プロセスがブロックチェーンに記録</li>
+                            </ul>
+                            <p><strong>革新性:</strong> 文脈理解、予測分析、自己学習による継続的最適化</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function nextStep(step) {
+            document.getElementById(`control-step${currentStep}`).style.display = 'none';
+            document.getElementById(`viz-step${currentStep}`).style.display = 'none';
+            document.getElementById(`step${currentStep}`).classList.remove('active');
+            document.getElementById(`step${currentStep}`).classList.add('completed');
+
+            currentStep = step;
+
+            document.getElementById(`control-step${currentStep}`).style.display = 'block';
+            document.getElementById(`viz-step${currentStep}`).style.display = 'block';
+            document.getElementById(`step${currentStep}`).classList.add('active');
+
+            if (step === 2) {
+                startAnalysis();
+            } else if (step === 3) {
+                simulateDecision();
+            } else if (step === 4) {
+                simulateExecution();
+            }
+        }
+
+        function startAnalysis() {
+            let progress = 0;
+            const progressBar = document.getElementById('analysis-progress');
+            const button = document.getElementById('analysis-btn');
+            const reasoningLog = document.getElementById('reasoning-log');
+            
+            const analysisSteps = [
+                '📊 オンチェーンデータ分析中...',
+                '📈 価格トレンド分析完了',
+                '🔍 流動性プール状況確認',
+                '📰 ニュースセンチメント分析',
+                '⚡ ガス価格最適化計算',
+                '🎯 最適戦略候補を3つ特定',
+                '🧠 リスク・リターン評価完了',
+                '✅ 推奨戦略決定'
+            ];
+            
+            let stepIndex = 0;
+            const interval = setInterval(() => {
+                progress += 12.5;
+                progressBar.style.width = progress + '%';
+                
+                if (stepIndex < analysisSteps.length) {
+                    reasoningLog.innerHTML += `<div>${analysisSteps[stepIndex]}</div>`;
+                    stepIndex++;
+                }
+                
+                updateMarketDataDemo();
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    button.disabled = false;
+                    button.textContent = '戦略決定完了';
+                    button.classList.add('success');
+                }
+            }, 400);
+        }
+
+        function updateMarketDataDemo() {
+            const prices = [2485, 2490, 2488, 2492, 2487];
+            const volatilities = ['18.3%', '19.1%', '17.8%', '18.7%', '19.4%'];
+            const tvls = ['$45.2B', '$45.8B', '$44.9B', '$45.5B', '$46.1B'];
+            
+            const ethPrice = document.getElementById('eth-price-demo');
+            const volatility = document.getElementById('volatility');
+            const tvl = document.getElementById('tvl');
+            
+            if (ethPrice) ethPrice.textContent = '$' + prices[Math.floor(Math.random() * prices.length)];
+            if (volatility) volatility.textContent = volatilities[Math.floor(Math.random() * volatilities.length)];
+            if (tvl) tvl.textContent = tvls[Math.floor(Math.random() * tvls.length)];
+        }
+
+        function simulateDecision() {
+            setTimeout(() => {
+                const strategies = [
+                    'Uniswap V3での流動性提供',
+                    'Compound での貸出最適化',
+                    'Aave フラッシュローン裁定取引'
+                ];
+                const returns = ['年利12.3%', '年利8.7%', '年利15.2%'];
+                const risks = ['中程度', '低', '高'];
+                
+                const randomIndex = Math.floor(Math.random() * strategies.length);
+                
+                document.getElementById('chosen-action').textContent = strategies[randomIndex];
+                document.getElementById('expected-return').textContent = returns[randomIndex];
+                document.getElementById('risk-assessment').textContent = risks[randomIndex];
+                
+                document.querySelector('#viz-step3 .transaction-log').classList.add('animated', 'fadeIn');
+            }, 500);
+        }
+
+        function simulateExecution() {
+            setTimeout(() => {
+                document.querySelector('#viz-step4 .audit-trail').classList.add('animated', 'fadeIn');
+            }, 500);
+        }
+
+        function resetDemo() {
+            currentStep = 1;
+            
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById(`control-step${i}`).style.display = i === 1 ? 'block' : 'none';
+                document.getElementById(`viz-step${i}`).style.display = i === 1 ? 'block' : 'none';
+                document.getElementById(`step${i}`).className = 'step' + (i === 1 ? ' active' : '');
+            }
+            
+            const progressBar = document.getElementById('analysis-progress');
+            const button = document.getElementById('analysis-btn');
+            const reasoningLog = document.getElementById('reasoning-log');
+            
+            if (progressBar) progressBar.style.width = '0%';
+            if (button) {
+                button.disabled = true;
+                button.textContent = '分析中...';
+                button.classList.remove('success');
+            }
+            if (reasoningLog) {
+                reasoningLog.innerHTML = '<div>📊 オンチェーンデータ分析中...</div>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateComparisonVisualization();
+            
+            const dashboards = document.querySelectorAll('.agent-dashboard');
+            dashboards.forEach(dashboard => {
+                dashboard.classList.add('animated', 'fadeIn');
+            });
+        });
+    </script>
+</body>
+</html>
