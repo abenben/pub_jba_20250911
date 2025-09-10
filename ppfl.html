@@ -1,0 +1,2457 @@
+<!--
+README: プライバシー保護型連合学習 可視化デモ（単一HTML / オフライン）
+使い方:
+  1) このファイルをブラウザで開きます。
+  2) 上部のタブで「解説＆比較」「プライバシー保護型連合学習」「まとめ」を切り替えます。
+  3) 左側のパネルでステップを進めると、右側の図と学習プロセスが連動して変化します。
+注意: これは教育用の概念実証デモです。実際の連合学習実装ではありません。
+-->
+<!doctype html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プライバシー保護型連合学習 可視化デモ</title>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --background-color: #f8f9fa;
+            --text-color: #212529;
+            --border-color: #dee2e6;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+            --warning-color: #ffc107;
+            --public-color: #28a745;
+            --private-color: #dc3545;
+            --code-bg: #e9ecef;
+            --animation-duration: 0.8s;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+        .tabs {
+            display: flex;
+            background-color: #f1f1f1;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .tab-button {
+            background-color: inherit;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 14px 16px;
+            transition: 0.3s;
+            font-size: 1rem;
+            flex-grow: 1;
+        }
+        .tab-button:hover {
+            background-color: #ddd;
+        }
+        .tab-button.active {
+            background-color: #ccc;
+            border-bottom: 3px solid var(--primary-color);
+        }
+        .tab-content {
+            display: none;
+            padding: 20px;
+            border-top: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .section {
+            margin-bottom: 2rem;
+        }
+        .section h2 {
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+            color: var(--primary-color);
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+        .control-panel {
+            background-color: var(--background-color);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        .visualization {
+            background-color: #fff;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            min-height: 400px;
+        }
+        .button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .button:disabled {
+            background-color: var(--secondary-color);
+            cursor: not-allowed;
+        }
+        .button.success {
+            background-color: var(--success-color);
+        }
+        .button.danger {
+            background-color: var(--danger-color);
+        }
+        .tag {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin: 2px;
+        }
+        .tag-public {
+            background-color: var(--success-color);
+            color: white;
+        }
+        .tag-private {
+            background-color: var(--danger-color);
+            color: white;
+        }
+        .tag-encrypted {
+            background-color: var(--info-color);
+            color: white;
+        }
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        .comparison-table th,
+        .comparison-table td {
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            text-align: left;
+        }
+        .comparison-table th {
+            background-color: var(--background-color);
+            font-weight: bold;
+        }
+        .comparison-table .traditional {
+            background-color: #fff5f5;
+        }
+        .comparison-table .federated {
+            background-color: #f0fff4;
+        }
+        .animated {
+            animation-duration: var(--animation-duration);
+            animation-fill-mode: both;
+        }
+        .fadeIn {
+            animation-name: fadeIn;
+        }
+        .pulse {
+            animation-name: pulse;
+            animation-duration: 2s;
+            animation-iteration-count: infinite;
+        }
+        .slideInRight {
+            animation-name: slideInRight;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+        .step {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 0 5px;
+            background-color: var(--background-color);
+            border: 2px solid var(--border-color);
+        }
+        .step.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        .step.completed {
+            background-color: var(--success-color);
+            color: white;
+            border-color: var(--success-color);
+        }
+        .institution-network {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .institution {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 8px;
+            padding: 15px;
+            color: white;
+            text-align: center;
+            position: relative;
+        }
+        .institution-data {
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 0.9rem;
+        }
+        .central-server {
+            background: linear-gradient(45deg, #f0f8ff, #e6f3ff);
+            border: 2px solid var(--info-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .encryption-flow {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 15px 0;
+            padding: 10px;
+            background: var(--code-bg);
+            border-radius: 4px;
+        }
+        .flow-arrow {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+        }
+        .security-layer {
+            background: linear-gradient(45deg, #e8f5e8, #f0fff0);
+            border: 1px solid var(--success-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .model-accuracy {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .accuracy-card {
+            background: var(--success-color);
+            color: white;
+            padding: 15px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--info-color));
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        @media (max-width: 768px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+            .institution-network {
+                grid-template-columns: 1fr;
+            }
+            .model-accuracy {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Enhanced Overview Tab Styles */
+        .learning-methods-comparison {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .method-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 12px;
+            padding: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .method-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        
+        .method-card.traditional-ai {
+            border-color: #dc3545;
+        }
+        
+        .method-card.federated-learning {
+            border-color: #ffc107;
+        }
+        
+        .method-card.privacy-preserving {
+            border-color: #28a745;
+        }
+        
+        .method-icon {
+            font-size: 3rem;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        
+        .method-visual {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255,255,255,0.7);
+            border-radius: 8px;
+        }
+        
+        .data-flow {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 1.2rem;
+        }
+        
+        .institution-node, .central-server {
+            padding: 10px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            font-size: 1.5rem;
+        }
+        
+        .flow-arrow {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            animation: pulse 2s infinite;
+        }
+        
+        .method-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 15px;
+        }
+        
+        .method-details-panel {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 30px 0;
+            border-left: 5px solid var(--primary-color);
+        }
+        
+        .story-scenario {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .process-steps {
+            display: grid;
+            gap: 15px;
+            margin: 25px 0;
+        }
+        
+        .step-item {
+            display: flex;
+            align-items: center;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .step-number {
+            background: var(--primary-color);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+        
+        .step-content h5 {
+            margin: 0 0 5px 0;
+            color: var(--primary-color);
+        }
+        
+        .step-content p {
+            margin: 0;
+            color: var(--secondary-color);
+        }
+        
+        .pros-cons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 25px 0;
+        }
+        
+        .pros, .cons {
+            padding: 20px;
+            border-radius: 8px;
+        }
+        
+        .pros {
+            background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
+            border-left: 4px solid #4caf50;
+        }
+        
+        .cons {
+            background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+            border-left: 4px solid #f44336;
+        }
+        
+        .remaining-challenges {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .crypto-technologies {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+        
+        .crypto-tech {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-top: 4px solid var(--info-color);
+        }
+        
+        .tech-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+        
+        .tech-analogy {
+            background: #f0f8ff;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-style: italic;
+            color: #666;
+        }
+        
+        .application-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+        
+        .application-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .application-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .app-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+        
+        .improvement-badge {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-top: 15px;
+            display: inline-block;
+        }
+        
+        /* Enhanced Demo Tab Styles */
+        .story-intro {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            padding: 25px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border-left: 5px solid #ffc107;
+        }
+        
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin: 30px 0;
+            position: relative;
+        }
+        
+        .step-indicator::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--border-color);
+            z-index: 1;
+        }
+        
+        .step {
+            background: white;
+            border: 3px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+            min-width: 120px;
+            transition: all 0.3s ease;
+        }
+        
+        .step.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+            transform: scale(1.05);
+        }
+        
+        .step.completed {
+            background: var(--success-color);
+            color: white;
+            border-color: var(--success-color);
+        }
+        
+        .step-icon {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+        
+        .step-title {
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        
+        .story-narration {
+            background: linear-gradient(135deg, #e8f4fd 0%, #d1ecf1 100%);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #17a2b8;
+        }
+        
+        .story-narration p {
+            margin: 0;
+            font-style: italic;
+        }
+        
+        .data-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+        
+        .bank-data-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .bank-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+        
+        .data-details {
+            margin: 15px 0;
+        }
+        
+        .data-types {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-top: 10px;
+        }
+        
+        .key-insight {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .story-button {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #0056b3 100%);
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+        }
+        
+        .story-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,123,255,0.3);
+        }
+        
+        .button-icon {
+            font-size: 1.2rem;
+        }
+        
+        .learning-progress-container {
+            margin: 25px 0;
+        }
+        
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        
+        .learning-details {
+            display: grid;
+            gap: 20px;
+            margin: 25px 0;
+        }
+        
+        .learning-insight, .encryption-explanation {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .crypto-tech-showcase {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 25px 0;
+        }
+        
+        .tech-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid var(--border-color);
+        }
+        
+        .tech-card:hover, .tech-card.active-tech {
+            border-color: var(--primary-color);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .aggregation-process {
+            margin: 25px 0;
+        }
+        
+        .process-visualization {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            padding: 20px;
+            background: var(--code-bg);
+            border-radius: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .encrypted-data, .result {
+            background: var(--primary-color);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+        
+        .plus-sign, .equals-sign {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .success-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+        
+        .metric-card {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .metric-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .metric-label {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+        
+        .improvement {
+            background: rgba(255,255,255,0.2);
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+        }
+        
+        .story-conclusion {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            padding: 25px;
+            border-radius: 12px;
+            margin: 25px 0;
+            border-left: 5px solid #28a745;
+        }
+        
+        /* Enhanced Visualization Styles */
+        .institution-network {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin: 25px 0;
+        }
+        
+        .institution {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 20px;
+            color: white;
+            text-align: center;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .institution:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        
+        .bank-building {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+        
+        .institution-data {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .data-icon {
+            font-size: 1.5rem;
+        }
+        
+        .data-info {
+            flex-grow: 1;
+            margin: 0 15px;
+        }
+        
+        .data-count {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        
+        .privacy-shield {
+            font-size: 1.5rem;
+        }
+        
+        .data-security {
+            margin-top: 15px;
+        }
+        
+        .data-isolation-message {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 25px 0;
+            text-align: center;
+            border: 2px dashed var(--border-color);
+        }
+        
+        .message-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .learning-mode .institution {
+            animation: learningPulse 2s infinite;
+        }
+        
+        @keyframes learningPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+        
+        .learning-process {
+            position: relative;
+        }
+        
+        .ai-brain {
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+        
+        .learning-status {
+            background: rgba(255,255,255,0.2);
+            padding: 10px;
+            border-radius: 6px;
+        }
+        
+        .accuracy {
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .learning-animation {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .pulse-ring {
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(255,255,255,0.5);
+            border-radius: 50%;
+            animation: pulseRing 2s infinite;
+        }
+        
+        @keyframes pulseRing {
+            0% { transform: scale(0.8); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        
+        .encryption-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin: 25px 0;
+            padding: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+        }
+        
+        .flow-item {
+            background: rgba(255,255,255,0.2);
+            padding: 10px 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        .flow-icon {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+        
+        .flow-text {
+            font-size: 0.9rem;
+        }
+        
+        .flow-arrow.animated {
+            animation: flowPulse 1.5s infinite;
+        }
+        
+        @keyframes flowPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+        
+        .crypto-server {
+            background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
+            border: 3px solid var(--info-color);
+            color: var(--text-color);
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .server-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+        
+        .security-layers {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .security-layer {
+            background: rgba(255,255,255,0.8);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            min-width: 100px;
+        }
+        
+        .layer-icon {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+        
+        .layer-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .layer-desc {
+            font-size: 0.8rem;
+            color: var(--secondary-color);
+        }
+        
+        .aggregation-visualization {
+            margin: 20px 0;
+        }
+        
+        .encrypted-inputs {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .encrypted-input {
+            background: var(--info-color);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+        
+        .plus {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--info-color);
+        }
+        
+        .aggregation-arrow {
+            text-align: center;
+            font-size: 2rem;
+            margin: 10px 0;
+        }
+        
+        .aggregation-result {
+            background: rgba(255,255,255,0.9);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .result-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .success-celebration {
+            text-align: center;
+            margin: 25px 0;
+        }
+        
+        .celebration-icon {
+            font-size: 4rem;
+            margin-bottom: 15px;
+        }
+        
+        .final-results {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            padding: 25px;
+            border-radius: 12px;
+            margin: 25px 0;
+        }
+        
+        .result-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .metric-display {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .metric-info {
+            flex-grow: 1;
+        }
+        
+        .improvement-badge {
+            background: var(--success-color);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+        
+        .distribution-flow {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .flow-item {
+            background: rgba(255,255,255,0.8);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        /* Enhanced Summary Tab Styles */
+        .summary-hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .hero-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+        
+        .summary-hero h3 {
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+        
+        .key-benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin: 40px 0;
+        }
+        
+        .benefit-card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border-top: 5px solid;
+        }
+        
+        .benefit-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+        
+        .benefit-card.privacy {
+            border-top-color: #dc3545;
+        }
+        
+        .benefit-card.accuracy {
+            border-top-color: #28a745;
+        }
+        
+        .benefit-card.compliance {
+            border-top-color: #ffc107;
+        }
+        
+        .benefit-card.innovation {
+            border-top-color: #17a2b8;
+        }
+        
+        .benefit-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+        
+        .benefit-details {
+            margin: 20px 0;
+        }
+        
+        .benefit-details ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .benefit-details li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .benefit-details li:before {
+            content: "✓ ";
+            color: #28a745;
+            font-weight: bold;
+        }
+        
+        .benefit-impact {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            text-align: center;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        
+        .impact-showcase {
+            margin: 50px 0;
+        }
+        
+        .impact-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin: 30px 0;
+        }
+        
+        .impact-card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border-left: 5px solid;
+        }
+        
+        .impact-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .impact-card.fraud-detection {
+            border-left-color: #dc3545;
+        }
+        
+        .impact-card.credit-scoring {
+            border-left-color: #28a745;
+        }
+        
+        .impact-card.compliance-monitoring {
+            border-left-color: #ffc107;
+        }
+        
+        .impact-card.risk-management {
+            border-left-color: #17a2b8;
+        }
+        
+        .impact-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .impact-value {
+            font-size: 3rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin: 15px 0;
+        }
+        
+        .impact-desc {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--success-color);
+            margin-bottom: 15px;
+        }
+        
+        .future-vision {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 40px;
+            border-radius: 16px;
+            margin: 50px 0;
+        }
+        
+        .vision-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 40px;
+            align-items: start;
+        }
+        
+        .vision-points {
+            margin: 25px 0;
+        }
+        
+        .vision-point {
+            display: flex;
+            align-items: start;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .point-icon {
+            font-size: 2rem;
+            margin-top: 5px;
+        }
+        
+        .point-text h5 {
+            margin: 0 0 8px 0;
+            color: var(--primary-color);
+        }
+        
+        .point-text p {
+            margin: 0;
+            color: var(--secondary-color);
+        }
+        
+        .future-timeline {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .timeline-item {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .timeline-item.current {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+        
+        .timeline-item.near {
+            background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%);
+            color: white;
+        }
+        
+        .timeline-item.future {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+        }
+        
+        .timeline-year {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .timeline-desc {
+            font-size: 0.9rem;
+        }
+        
+        .call-to-action {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            margin: 50px 0;
+        }
+        
+        .cta-content h3 {
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+        
+        .cta-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .cta-primary {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            padding: 15px 30px;
+            font-size: 1.1rem;
+        }
+        
+        .cta-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            padding: 15px 30px;
+            font-size: 1.1rem;
+        }
+        
+        /* Responsive Design Enhancements */
+        @media (max-width: 768px) {
+            .learning-methods-comparison {
+                grid-template-columns: 1fr;
+            }
+            
+            .pros-cons {
+                grid-template-columns: 1fr;
+            }
+            
+            .crypto-technologies {
+                grid-template-columns: 1fr;
+            }
+            
+            .application-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .data-overview {
+                grid-template-columns: 1fr;
+            }
+            
+            .crypto-tech-showcase {
+                grid-template-columns: 1fr;
+            }
+            
+            .success-metrics {
+                grid-template-columns: 1fr;
+            }
+            
+            .key-benefits-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .impact-metrics {
+                grid-template-columns: 1fr;
+            }
+            
+            .vision-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .process-visualization {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .encrypted-inputs {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .security-layers {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .step-indicator {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .step-indicator::before {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>プライバシー保護型連合学習（FHE/MPC/TEEとの連携）</h1>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-button active" onclick="openTab(event, 'overview')">解説＆比較</button>
+            <button class="tab-button" onclick="openTab(event, 'demo')">プライバシー保護型連合学習</button>
+            <button class="tab-button" onclick="openTab(event, 'summary')">まとめ</button>
+        </div>
+
+        <div id="overview" class="tab-content active">
+            <div class="section">
+                <h2>AI学習手法の進化：プライバシーとデータ活用の両立への道</h2>
+                <p>金融業界におけるAI学習の進化を、物語性のある視覚的な比較で理解しましょう。</p>
+                
+                <div class="learning-methods-comparison">
+                    <div class="method-card traditional-ai" onclick="showMethodDetails('traditional')">
+                        <div class="method-icon">🏢</div>
+                        <h3>従来のAI学習</h3>
+                        <p>すべてのデータを中央に集約</p>
+                        <div class="method-visual">
+                            <div class="data-flow traditional-flow">
+                                <div class="institution-node">🏦</div>
+                                <div class="flow-arrow">→</div>
+                                <div class="central-server">☁️</div>
+                                <div class="flow-arrow">←</div>
+                                <div class="institution-node">🏦</div>
+                            </div>
+                        </div>
+                        <div class="method-tags">
+                            <span class="tag-danger">プライバシーリスク</span>
+                            <span class="tag-warning">データ移転必要</span>
+                        </div>
+                    </div>
+
+                    <div class="method-card federated-learning" onclick="showMethodDetails('federated')">
+                        <div class="method-icon">🤝</div>
+                        <h3>連合学習</h3>
+                        <p>データを動かさず、モデルを動かす</p>
+                        <div class="method-visual">
+                            <div class="data-flow federated-flow">
+                                <div class="institution-node">🏦</div>
+                                <div class="flow-arrow">📊→</div>
+                                <div class="central-server">☁️</div>
+                                <div class="flow-arrow">←📊</div>
+                                <div class="institution-node">🏦</div>
+                            </div>
+                        </div>
+                        <div class="method-tags">
+                            <span class="tag-success">データ保護</span>
+                            <span class="tag-warning">推論可能性</span>
+                        </div>
+                    </div>
+
+                    <div class="method-card privacy-preserving" onclick="showMethodDetails('privacy')">
+                        <div class="method-icon">🔐</div>
+                        <h3>プライバシー保護型連合学習</h3>
+                        <p>暗号化技術で究極のプライバシー</p>
+                        <div class="method-visual">
+                            <div class="data-flow privacy-flow">
+                                <div class="institution-node">🏦</div>
+                                <div class="flow-arrow">🔐→</div>
+                                <div class="central-server">🛡️</div>
+                                <div class="flow-arrow">←🔐</div>
+                                <div class="institution-node">🏦</div>
+                            </div>
+                        </div>
+                        <div class="method-tags">
+                            <span class="tag-success">完全プライバシー</span>
+                            <span class="tag-success">高精度学習</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="method-details" class="method-details-panel" style="display: none;">
+                    <div id="traditional-details" class="method-detail" style="display: none;">
+                        <h3>従来のAI学習：パワーとリスクの諸刃の剣</h3>
+                        <div class="story-scenario">
+                            <h4>📖 シナリオ：銀行の不正検知システム</h4>
+                            <p>A銀行が不正検知AIを構築したいと考えています。しかし、自社のデータだけでは限界があります...</p>
+                        </div>
+                        <div class="process-steps">
+                            <div class="step-item">
+                                <div class="step-number">1</div>
+                                <div class="step-content">
+                                    <h5>データ収集</h5>
+                                    <p>複数の銀行から取引データを中央サーバーに集約</p>
+                                </div>
+                            </div>
+                            <div class="step-item">
+                                <div class="step-number">2</div>
+                                <div class="step-content">
+                                    <h5>一括学習</h5>
+                                    <p>集約されたデータで高性能AIモデルを学習</p>
+                                </div>
+                            </div>
+                            <div class="step-item">
+                                <div class="step-number">3</div>
+                                <div class="step-content">
+                                    <h5>モデル配布</h5>
+                                    <p>完成したモデルを各銀行に配布</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="pros-cons">
+                            <div class="pros">
+                                <h5>✅ メリット</h5>
+                                <ul>
+                                    <li>高いモデル精度</li>
+                                    <li>管理の容易さ</li>
+                                    <li>豊富なエコシステム</li>
+                                </ul>
+                            </div>
+                            <div class="cons">
+                                <h5>❌ デメリット</h5>
+                                <ul>
+                                    <li>データ漏洩リスク</li>
+                                    <li>プライバシー侵害</li>
+                                    <li>法規制への対応困難</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="federated-details" class="method-detail" style="display: none;">
+                        <h3>連合学習：プライバシーへの第一歩</h3>
+                        <div class="story-scenario">
+                            <h4>📖 シナリオ：データを共有せずに協力</h4>
+                            <p>各銀行が機密データを外部に出すことなく、共同でAIモデルを改善したいと考えています...</p>
+                        </div>
+                        <div class="process-steps">
+                            <div class="step-item">
+                                <div class="step-number">1</div>
+                                <div class="step-content">
+                                    <h5>モデル配布</h5>
+                                    <p>中央サーバーが初期モデルを各銀行に配布</p>
+                                </div>
+                            </div>
+                            <div class="step-item">
+                                <div class="step-number">2</div>
+                                <div class="step-content">
+                                    <h5>ローカル学習</h5>
+                                    <p>各銀行が自社データでモデルを学習</p>
+                                </div>
+                            </div>
+                            <div class="step-item">
+                                <div class="step-number">3</div>
+                                <div class="step-content">
+                                    <h5>学習結果送信</h5>
+                                    <p>学習結果（重みの差分）のみを送信</p>
+                                </div>
+                            </div>
+                            <div class="step-item">
+                                <div class="step-number">4</div>
+                                <div class="step-content">
+                                    <h5>モデル集約</h5>
+                                    <p>サーバーが学習結果を平均化して統合</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="remaining-challenges">
+                            <h5>⚠️ 残された課題</h5>
+                            <p>学習結果から元データを推測される可能性があります（モデル反転攻撃、メンバーシップ推論攻撃など）</p>
+                        </div>
+                    </div>
+
+                    <div id="privacy-details" class="method-detail" style="display: none;">
+                        <h3>プライバシー保護型連合学習：暗号技術との融合</h3>
+                        <div class="story-scenario">
+                            <h4>📖 シナリオ：究極のプライバシー保護</h4>
+                            <p>連合学習でもまだ残るプライバシーリスクを、最新の暗号技術で完全に解決します...</p>
+                        </div>
+                        <div class="crypto-technologies">
+                            <div class="crypto-tech">
+                                <div class="tech-icon">🔐</div>
+                                <h5>FHE（完全準同型暗号）</h5>
+                                <p>暗号化したまま計算できる「魔法の箱」</p>
+                                <div class="tech-analogy">
+                                    <p>💡 例え：中身が見えない鍵付きの箱で計算</p>
+                                </div>
+                            </div>
+                            <div class="crypto-tech">
+                                <div class="tech-icon">🤝</div>
+                                <h5>MPC（マルチパーティ計算）</h5>
+                                <p>秘密を明かさずに協力計算</p>
+                                <div class="tech-analogy">
+                                    <p>💡 例え：年収を教えずに平均年収を計算</p>
+                                </div>
+                            </div>
+                            <div class="crypto-tech">
+                                <div class="tech-icon">🛡️</div>
+                                <h5>TEE（信頼できる実行環境）</h5>
+                                <p>ハードウェアによる安全な計算領域</p>
+                                <div class="tech-analogy">
+                                    <p>💡 例え：誰も覗けない金庫室での計算</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>🏆 金融業界での革新的応用</h3>
+                    <div class="application-grid">
+                        <div class="application-card">
+                            <div class="app-icon">🔍</div>
+                            <h4>多銀行不正検知</h4>
+                            <p>複数銀行のデータを活用した高精度不正検知</p>
+                            <div class="improvement-badge">精度向上 70%</div>
+                        </div>
+                        <div class="application-card">
+                            <div class="app-icon">📊</div>
+                            <h4>信用スコアリング</h4>
+                            <p>複数金融機関の協調による包括的評価</p>
+                            <div class="improvement-badge">精度向上 60%</div>
+                        </div>
+                        <div class="application-card">
+                            <div class="app-icon">⚖️</div>
+                            <h4>規制コンプライアンス</h4>
+                            <p>業界全体での協調監視システム</p>
+                            <div class="improvement-badge">検出率向上 80%</div>
+                        </div>
+                        <div class="application-card">
+                            <div class="app-icon">📈</div>
+                            <h4>リスク管理</h4>
+                            <p>業界横断的なリスク分析</p>
+                            <div class="improvement-badge">予測精度向上 65%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="demo" class="tab-content">
+            <div class="section">
+                <h2>🎭 ストーリー体験：3つの銀行の協力物語</h2>
+                <div class="story-intro">
+                    <h3>📖 シナリオ設定</h3>
+                    <p>A銀行、B銀行、C銀行が協力して、業界最高レベルの不正検知AIを開発しようとしています。しかし、各銀行の機密データは絶対に外部に出せません。そこで、プライバシー保護型連合学習の出番です！</p>
+                </div>
+                
+                <div class="step-indicator">
+                    <div class="step active" id="step1">
+                        <div class="step-icon">🏦</div>
+                        <div class="step-title">データ分散保持</div>
+                    </div>
+                    <div class="step" id="step2">
+                        <div class="step-icon">🧠</div>
+                        <div class="step-title">ローカル学習</div>
+                    </div>
+                    <div class="step" id="step3">
+                        <div class="step-icon">🔐</div>
+                        <div class="step-title">暗号化集約</div>
+                    </div>
+                    <div class="step" id="step4">
+                        <div class="step-icon">✨</div>
+                        <div class="step-title">モデル完成</div>
+                    </div>
+                </div>
+
+                <div class="layout">
+                    <div class="control-panel">
+                        <h3>🎮 ストーリー進行コントロール</h3>
+                        
+                        <div id="control-step1" class="control-step">
+                            <h4>第1章：各銀行のデータ保持状況</h4>
+                            <div class="story-narration">
+                                <p>💭 <strong>ナレーション</strong>：各銀行は貴重な取引データを持っていますが、法規制により他行とは共有できません。</p>
+                            </div>
+                            <div class="data-overview">
+                                <div class="bank-data-card">
+                                    <div class="bank-icon">🏦</div>
+                                    <h5>A銀行</h5>
+                                    <div class="data-details">
+                                        <div><span class="tag-private">機密</span> 融資データ 10,000件</div>
+                                        <div class="data-types">個人ローン、住宅ローン、事業融資</div>
+                                    </div>
+                                </div>
+                                <div class="bank-data-card">
+                                    <div class="bank-icon">🏦</div>
+                                    <h5>B銀行</h5>
+                                    <div class="data-details">
+                                        <div><span class="tag-private">機密</span> 投資データ 8,500件</div>
+                                        <div class="data-types">株式取引、債券、投資信託</div>
+                                    </div>
+                                </div>
+                                <div class="bank-data-card">
+                                    <div class="bank-icon">🏦</div>
+                                    <h5>C銀行</h5>
+                                    <div class="data-details">
+                                        <div><span class="tag-private">機密</span> 保険データ 12,000件</div>
+                                        <div class="data-types">生命保険、損害保険、年金</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="key-insight">
+                                <h5>🔑 重要ポイント</h5>
+                                <p>データは各銀行から<strong>絶対に外部に出ません</strong>。これがプライバシー保護の基本原則です。</p>
+                            </div>
+                            <button class="button story-button" onclick="nextStep(2)">
+                                <span class="button-icon">▶️</span>
+                                第2章：ローカル学習開始
+                            </button>
+                        </div>
+
+                        <div id="control-step2" class="control-step" style="display: none;">
+                            <h4>第2章：各銀行でのAI学習</h4>
+                            <div class="story-narration">
+                                <p>💭 <strong>ナレーション</strong>：各銀行が自社データを使って、不正検知AIモデルを学習させています。</p>
+                            </div>
+                            <div class="learning-progress-container">
+                                <h5>学習進捗状況</h5>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="learning-progress"></div>
+                                    <div class="progress-text">学習中...</div>
+                                </div>
+                            </div>
+                            <div class="learning-details">
+                                <div class="learning-insight">
+                                    <h5>🧠 学習プロセス</h5>
+                                    <p>各銀行のAIは、自社の過去の不正事例から「怪しい取引パターン」を学習しています。</p>
+                                </div>
+                                <div class="encryption-explanation">
+                                    <h5>🔐 暗号化準備</h5>
+                                    <p>学習が完了すると、<strong>学習結果の差分のみ</strong>が暗号化されて送信されます。元データは一切送信されません。</p>
+                                </div>
+                            </div>
+                            <button class="button story-button" onclick="nextStep(3)" id="learning-btn" disabled>
+                                <span class="button-icon">⏳</span>
+                                学習中...
+                            </button>
+                        </div>
+
+                        <div id="control-step3" class="control-step" style="display: none;">
+                            <h4>第3章：暗号化技術による安全な集約</h4>
+                            <div class="story-narration">
+                                <p>💭 <strong>ナレーション</strong>：ここからが魔法の時間です！最新の暗号技術を使って、誰にも見られることなく学習結果を統合します。</p>
+                            </div>
+                            <div class="crypto-tech-showcase">
+                                <div class="tech-card active-tech" data-tech="fhe">
+                                    <div class="tech-icon">🔐</div>
+                                    <h5>FHE（完全準同型暗号）</h5>
+                                    <p>暗号化したまま計算できる技術</p>
+                                    <div class="tech-analogy">💡 鍵付きの箱の中で計算</div>
+                                </div>
+                                <div class="tech-card" data-tech="mpc">
+                                    <div class="tech-icon">🤝</div>
+                                    <h5>MPC（マルチパーティ計算）</h5>
+                                    <p>秘密を明かさずに協力計算</p>
+                                    <div class="tech-analogy">💡 年収を教えずに平均計算</div>
+                                </div>
+                                <div class="tech-card" data-tech="tee">
+                                    <div class="tech-icon">🛡️</div>
+                                    <h5>TEE（信頼できる実行環境）</h5>
+                                    <p>ハードウェアによる安全領域</p>
+                                    <div class="tech-analogy">💡 誰も覗けない金庫室</div>
+                                </div>
+                            </div>
+                            <div class="aggregation-process">
+                                <h5>🔄 集約プロセス</h5>
+                                <div class="process-visualization">
+                                    <div class="encrypted-data">🔐 A銀行の学習結果</div>
+                                    <div class="plus-sign">+</div>
+                                    <div class="encrypted-data">🔐 B銀行の学習結果</div>
+                                    <div class="plus-sign">+</div>
+                                    <div class="encrypted-data">🔐 C銀行の学習結果</div>
+                                    <div class="equals-sign">=</div>
+                                    <div class="result">✨ 統合モデル</div>
+                                </div>
+                            </div>
+                            <button class="button success story-button" onclick="nextStep(4)">
+                                <span class="button-icon">🚀</span>
+                                第4章：魔法の完成
+                            </button>
+                        </div>
+
+                        <div id="control-step4" class="control-step" style="display: none;">
+                            <h4>第4章：奇跡の完成！</h4>
+                            <div class="story-narration">
+                                <p>💭 <strong>ナレーション</strong>：ついに完成しました！3つの銀行の知識を統合した、業界最高レベルの不正検知AIです。</p>
+                            </div>
+                            <div class="success-metrics">
+                                <div class="metric-card">
+                                    <div class="metric-icon">🎯</div>
+                                    <div class="metric-value">95.2%</div>
+                                    <div class="metric-label">検知精度</div>
+                                    <div class="improvement">+8.1% 向上</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-icon">🔒</div>
+                                    <div class="metric-value">100%</div>
+                                    <div class="metric-label">プライバシー保護</div>
+                                    <div class="improvement">完全保護</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-icon">⚖️</div>
+                                    <div class="metric-value">100%</div>
+                                    <div class="metric-label">法規制準拠</div>
+                                    <div class="improvement">完全準拠</div>
+                                </div>
+                            </div>
+                            <div class="story-conclusion">
+                                <h5>🎉 ストーリー完結</h5>
+                                <p>各銀行は機密データを一切外部に出すことなく、協力して業界最高のAIを作り上げました。これがプライバシー保護型連合学習の力です！</p>
+                            </div>
+                            <button class="button story-button" onclick="resetDemo()">
+                                <span class="button-icon">🔄</span>
+                                ストーリーを最初から見る
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="visualization">
+                        <div id="viz-step1" class="viz-step">
+                            <h4>🏦 各銀行のデータ保持状況</h4>
+                            <div class="institution-network">
+                                <div class="institution bank-a">
+                                    <div class="bank-building">🏦</div>
+                                    <h5>A銀行</h5>
+                                    <div class="institution-data">
+                                        <div class="data-icon">💳</div>
+                                        <div class="data-info">
+                                            <div>融資データ</div>
+                                            <div class="data-count">10,000件</div>
+                                        </div>
+                                        <div class="privacy-shield">🛡️</div>
+                                    </div>
+                                    <div class="data-security">
+                                        <span class="tag-private">外部非公開</span>
+                                    </div>
+                                </div>
+                                <div class="institution bank-b">
+                                    <div class="bank-building">🏦</div>
+                                    <h5>B銀行</h5>
+                                    <div class="institution-data">
+                                        <div class="data-icon">📈</div>
+                                        <div class="data-info">
+                                            <div>投資データ</div>
+                                            <div class="data-count">8,500件</div>
+                                        </div>
+                                        <div class="privacy-shield">🛡️</div>
+                                    </div>
+                                    <div class="data-security">
+                                        <span class="tag-private">外部非公開</span>
+                                    </div>
+                                </div>
+                                <div class="institution bank-c">
+                                    <div class="bank-building">🏦</div>
+                                    <h5>C銀行</h5>
+                                    <div class="institution-data">
+                                        <div class="data-icon">🛡️</div>
+                                        <div class="data-info">
+                                            <div>保険データ</div>
+                                            <div class="data-count">12,000件</div>
+                                        </div>
+                                        <div class="privacy-shield">🛡️</div>
+                                    </div>
+                                    <div class="data-security">
+                                        <span class="tag-private">外部非公開</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="data-isolation-message">
+                                <div class="message-icon">🔒</div>
+                                <p>各銀行のデータは厳重に保護され、外部に出ることはありません</p>
+                            </div>
+                        </div>
+
+                        <div id="viz-step2" class="viz-step" style="display: none;">
+                            <h4>🧠 各銀行でのローカル学習</h4>
+                            <div class="institution-network learning-mode">
+                                <div class="institution bank-a learning">
+                                    <div class="bank-building">🏦</div>
+                                    <h5>A銀行</h5>
+                                    <div class="learning-process">
+                                        <div class="ai-brain">🧠</div>
+                                        <div class="learning-status">
+                                            <div>学習進行中...</div>
+                                            <div class="accuracy">精度: 87.3%</div>
+                                        </div>
+                                        <div class="learning-animation">
+                                            <div class="pulse-ring"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="institution bank-b learning">
+                                    <div class="bank-building">🏦</div>
+                                    <h5>B銀行</h5>
+                                    <div class="learning-process">
+                                        <div class="ai-brain">🧠</div>
+                                        <div class="learning-status">
+                                            <div>学習進行中...</div>
+                                            <div class="accuracy">精度: 89.1%</div>
+                                        </div>
+                                        <div class="learning-animation">
+                                            <div class="pulse-ring"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="institution bank-c learning">
+                                    <div class="bank-building">🏦</div>
+                                    <h5>C銀行</h5>
+                                    <div class="learning-process">
+                                        <div class="ai-brain">🧠</div>
+                                        <div class="learning-status">
+                                            <div>学習進行中...</div>
+                                            <div class="accuracy">精度: 85.7%</div>
+                                        </div>
+                                        <div class="learning-animation">
+                                            <div class="pulse-ring"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="encryption-flow">
+                                <div class="flow-item">
+                                    <div class="flow-icon">📊</div>
+                                    <div class="flow-text">学習結果差分</div>
+                                </div>
+                                <div class="flow-arrow animated">🔐→</div>
+                                <div class="flow-item">
+                                    <div class="flow-icon">📡</div>
+                                    <div class="flow-text">暗号化送信</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="viz-step3" class="viz-step" style="display: none;">
+                            <h4>🔐 暗号化技術による安全な集約</h4>
+                            <div class="central-server crypto-server">
+                                <div class="server-icon">🖥️</div>
+                                <h5>プライバシー保護集約サーバー</h5>
+                                <div class="security-layers">
+                                    <div class="security-layer fhe-layer">
+                                        <div class="layer-icon">🔐</div>
+                                        <div class="layer-name">FHE層</div>
+                                        <div class="layer-desc">暗号化計算</div>
+                                    </div>
+                                    <div class="security-layer mpc-layer">
+                                        <div class="layer-icon">🤝</div>
+                                        <div class="layer-name">MPC層</div>
+                                        <div class="layer-desc">分散計算</div>
+                                    </div>
+                                    <div class="security-layer tee-layer">
+                                        <div class="layer-icon">🛡️</div>
+                                        <div class="layer-name">TEE層</div>
+                                        <div class="layer-desc">安全実行</div>
+                                    </div>
+                                </div>
+                                <div class="aggregation-visualization">
+                                    <div class="encrypted-inputs">
+                                        <div class="encrypted-input">🔐A</div>
+                                        <div class="plus">+</div>
+                                        <div class="encrypted-input">🔐B</div>
+                                        <div class="plus">+</div>
+                                        <div class="encrypted-input">🔐C</div>
+                                    </div>
+                                    <div class="aggregation-arrow">⬇️</div>
+                                    <div class="aggregation-result">
+                                        <div class="result-icon">✨</div>
+                                        <div class="result-text">統合モデル生成中...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="viz-step4" class="viz-step" style="display: none;">
+                            <h4>✨ 奇跡の完成：統合AIモデル</h4>
+                            <div class="success-celebration">
+                                <div class="celebration-icon">🎉</div>
+                                <h5>連合学習完了！</h5>
+                            </div>
+                            <div class="final-results">
+                                <div class="result-metrics">
+                                    <div class="metric-display">
+                                        <div class="metric-icon">🎯</div>
+                                        <div class="metric-info">
+                                            <div class="metric-value">95.2%</div>
+                                            <div class="metric-label">統合精度</div>
+                                            <div class="improvement-badge">+8.1% 向上</div>
+                                        </div>
+                                    </div>
+                                    <div class="metric-display">
+                                        <div class="metric-icon">🔒</div>
+                                        <div class="metric-info">
+                                            <div class="metric-value">100%</div>
+                                            <div class="metric-label">プライバシー保護</div>
+                                            <div class="improvement-badge">完全保護</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="distribution-flow">
+                                    <div class="flow-item">
+                                        <span class="tag-public">配布</span>
+                                        <p>更新モデルを各銀行に配布</p>
+                                    </div>
+                                    <div class="flow-item">
+                                        <span class="tag-private">保護</span>
+                                        <p>データプライバシー完全保持</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="summary" class="tab-content">
+            <div class="section">
+                <h2>🎯 まとめ：プライバシー保護型連合学習の革新的価値</h2>
+                
+                <div class="summary-hero">
+                    <div class="hero-icon">🚀</div>
+                    <h3>データプライバシーとAI性能の両立を実現</h3>
+                    <p>従来は不可能とされていた「完全なプライバシー保護」と「高精度AI学習」の同時達成を、最新の暗号技術との連携により実現しました。</p>
+                </div>
+
+                <div class="key-benefits-grid">
+                    <div class="benefit-card privacy">
+                        <div class="benefit-icon">🔒</div>
+                        <h4>完全なプライバシー保護</h4>
+                        <div class="benefit-details">
+                            <p>機密データを外部に出すことなく学習</p>
+                            <ul>
+                                <li>FHE：暗号化したまま計算</li>
+                                <li>MPC：秘密分散による協調計算</li>
+                                <li>TEE：ハードウェア保護領域</li>
+                            </ul>
+                        </div>
+                        <div class="benefit-impact">データ漏洩リスク：ゼロ</div>
+                    </div>
+
+                    <div class="benefit-card accuracy">
+                        <div class="benefit-icon">🎯</div>
+                        <h4>学習精度の大幅向上</h4>
+                        <div class="benefit-details">
+                            <p>複数機関のデータを活用した高精度AI</p>
+                            <ul>
+                                <li>データ多様性の向上</li>
+                                <li>バイアス軽減効果</li>
+                                <li>汎化性能の向上</li>
+                            </ul>
+                        </div>
+                        <div class="benefit-impact">精度向上：最大80%</div>
+                    </div>
+
+                    <div class="benefit-card compliance">
+                        <div class="benefit-icon">⚖️</div>
+                        <h4>規制要件への完全対応</h4>
+                        <div class="benefit-details">
+                            <p>データ移転制約を満たす学習手法</p>
+                            <ul>
+                                <li>GDPR準拠</li>
+                                <li>個人情報保護法対応</li>
+                                <li>業界規制クリア</li>
+                            </ul>
+                        </div>
+                        <div class="benefit-impact">コンプライアンス：100%</div>
+                    </div>
+
+                    <div class="benefit-card innovation">
+                        <div class="benefit-icon">🤝</div>
+                        <h4>協調的イノベーション</h4>
+                        <div class="benefit-details">
+                            <p>業界全体での技術革新促進</p>
+                            <ul>
+                                <li>競合他社との安全な協力</li>
+                                <li>業界標準の向上</li>
+                                <li>社会全体への貢献</li>
+                            </ul>
+                        </div>
+                        <div class="benefit-impact">業界発展：加速</div>
+                    </div>
+                </div>
+
+                <div class="impact-showcase">
+                    <h3>📊 金融業界への具体的インパクト</h3>
+                    <div class="impact-metrics">
+                        <div class="impact-card fraud-detection">
+                            <div class="impact-icon">🔍</div>
+                            <div class="impact-content">
+                                <h4>不正検出システム</h4>
+                                <div class="impact-value">70%</div>
+                                <div class="impact-desc">検出精度向上</div>
+                                <p>複数銀行の取引パターンを学習し、従来では発見困難な巧妙な不正を検出</p>
+                            </div>
+                        </div>
+                        <div class="impact-card credit-scoring">
+                            <div class="impact-icon">📊</div>
+                            <div class="impact-content">
+                                <h4>信用評価システム</h4>
+                                <div class="impact-value">60%</div>
+                                <div class="impact-desc">評価精度向上</div>
+                                <p>多角的な金融データを活用し、より公平で正確な信用評価を実現</p>
+                            </div>
+                        </div>
+                        <div class="impact-card compliance-monitoring">
+                            <div class="impact-icon">⚖️</div>
+                            <div class="impact-content">
+                                <h4>コンプライアンス監視</h4>
+                                <div class="impact-value">80%</div>
+                                <div class="impact-desc">検出率向上</div>
+                                <p>業界全体での協調により、規制違反やマネーロンダリングを早期発見</p>
+                            </div>
+                        </div>
+                        <div class="impact-card risk-management">
+                            <div class="impact-icon">📈</div>
+                            <div class="impact-content">
+                                <h4>リスク管理システム</h4>
+                                <div class="impact-value">65%</div>
+                                <div class="impact-desc">予測精度向上</div>
+                                <p>市場全体のリスク要因を総合的に分析し、システミックリスクを予防</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="future-vision">
+                    <h3>🌟 未来への展望</h3>
+                    <div class="vision-content">
+                        <div class="vision-text">
+                            <h4>プライバシーとイノベーションの新時代</h4>
+                            <p>プライバシー保護型連合学習は、金融業界のデータ活用を根本的に変革します。個人のプライバシーを完全に保護しながら、業界全体の知識を結集した高精度AIの構築が可能になります。</p>
+                            
+                            <div class="vision-points">
+                                <div class="vision-point">
+                                    <div class="point-icon">🔮</div>
+                                    <div class="point-text">
+                                        <h5>技術的進歩</h5>
+                                        <p>FHE、MPC、TEE技術の更なる発展により、計算効率と安全性が向上</p>
+                                    </div>
+                                </div>
+                                <div class="vision-point">
+                                    <div class="point-icon">🌐</div>
+                                    <div class="point-text">
+                                        <h5>グローバル展開</h5>
+                                        <p>国境を越えた金融機関間での安全なデータ協力が実現</p>
+                                    </div>
+                                </div>
+                                <div class="vision-point">
+                                    <div class="point-icon">🏛️</div>
+                                    <div class="point-text">
+                                        <h5>社会的価値</h5>
+                                        <p>金融包摂の促進と、より公平で安全な金融システムの構築</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="vision-visual">
+                            <div class="future-timeline">
+                                <div class="timeline-item current">
+                                    <div class="timeline-year">2024</div>
+                                    <div class="timeline-desc">技術実証段階</div>
+                                </div>
+                                <div class="timeline-item near">
+                                    <div class="timeline-year">2025-2026</div>
+                                    <div class="timeline-desc">商用化開始</div>
+                                </div>
+                                <div class="timeline-item future">
+                                    <div class="timeline-year">2027+</div>
+                                    <div class="timeline-desc">業界標準化</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="call-to-action">
+                    <div class="cta-content">
+                        <h3>🚀 今すぐ始めるプライバシー保護型AI</h3>
+                        <p>未来の金融AIは、プライバシー保護型連合学習から始まります。あなたの組織も、この革新的技術の先駆者になりませんか？</p>
+                        <div class="cta-buttons">
+                            <button class="button cta-primary" onclick="openTab(event, 'demo')">
+                                <span class="button-icon">🎭</span>
+                                デモを体験する
+                            </button>
+                            <button class="button cta-secondary" onclick="openTab(event, 'overview')">
+                                <span class="button-icon">📚</span>
+                                詳細を学ぶ
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 1;
+
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].classList.remove("active");
+            }
+            tablinks = document.getElementsByClassName("tab-button");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].classList.remove("active");
+            }
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+
+        function showMethodDetails(method) {
+            const detailsPanel = document.getElementById('method-details');
+            const allDetails = document.querySelectorAll('.method-detail');
+            
+            allDetails.forEach(detail => detail.style.display = 'none');
+            
+            const selectedDetail = document.getElementById(method + '-details');
+            if (selectedDetail) {
+                selectedDetail.style.display = 'block';
+                detailsPanel.style.display = 'block';
+                
+                detailsPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                
+                selectedDetail.classList.add('animated', 'fadeIn');
+            }
+        }
+
+        function nextStep(step) {
+            document.getElementById(`control-step${currentStep}`).style.display = 'none';
+            document.getElementById(`viz-step${currentStep}`).style.display = 'none';
+            document.getElementById(`step${currentStep}`).classList.remove('active');
+            document.getElementById(`step${currentStep}`).classList.add('completed');
+
+            currentStep = step;
+
+            document.getElementById(`control-step${currentStep}`).style.display = 'block';
+            document.getElementById(`viz-step${currentStep}`).style.display = 'block';
+            document.getElementById(`step${currentStep}`).classList.add('active');
+
+            if (step === 2) {
+                startLearning();
+                animateInstitutions();
+            } else if (step === 3) {
+                simulateEncryption();
+                animateCryptoTech();
+            } else if (step === 4) {
+                simulateAggregation();
+                celebrateCompletion();
+            }
+        }
+
+        function startLearning() {
+            let progress = 0;
+            const progressBar = document.getElementById('learning-progress');
+            const progressText = document.querySelector('.progress-text');
+            const button = document.getElementById('learning-btn');
+            
+            const interval = setInterval(() => {
+                progress += 12;
+                progressBar.style.width = progress + '%';
+                
+                if (progress < 30) {
+                    progressText.textContent = 'データ分析中...';
+                } else if (progress < 60) {
+                    progressText.textContent = 'パターン学習中...';
+                } else if (progress < 90) {
+                    progressText.textContent = 'モデル最適化中...';
+                } else {
+                    progressText.textContent = '学習完了！';
+                }
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    button.disabled = false;
+                    button.innerHTML = '<span class="button-icon">🚀</span>第3章：暗号化集約へ';
+                    button.classList.add('success');
+                    
+                    progressBar.style.background = 'linear-gradient(90deg, #28a745, #20c997)';
+                }
+            }, 300);
+        }
+
+        function animateInstitutions() {
+            const institutions = document.querySelectorAll('.institution.learning');
+            institutions.forEach((institution, index) => {
+                setTimeout(() => {
+                    institution.classList.add('animated', 'pulse');
+                }, index * 200);
+            });
+        }
+
+        function simulateEncryption() {
+            setTimeout(() => {
+                const securityLayers = document.querySelectorAll('.security-layer');
+                securityLayers.forEach((layer, index) => {
+                    setTimeout(() => {
+                        layer.classList.add('animated', 'fadeIn');
+                    }, index * 300);
+                });
+            }, 500);
+        }
+
+        function animateCryptoTech() {
+            const techCards = document.querySelectorAll('.tech-card');
+            techCards.forEach((card, index) => {
+                setTimeout(() => {
+                    card.classList.add('animated', 'slideInRight');
+                }, index * 200);
+            });
+        }
+
+        function simulateAggregation() {
+            setTimeout(() => {
+                const aggregationResult = document.querySelector('.aggregation-result');
+                if (aggregationResult) {
+                    aggregationResult.classList.add('animated', 'fadeIn');
+                }
+            }, 500);
+        }
+
+        function celebrateCompletion() {
+            setTimeout(() => {
+                const celebration = document.querySelector('.success-celebration');
+                const metrics = document.querySelectorAll('.metric-display');
+                
+                if (celebration) {
+                    celebration.classList.add('animated', 'fadeIn');
+                }
+                
+                metrics.forEach((metric, index) => {
+                    setTimeout(() => {
+                        metric.classList.add('animated', 'slideInRight');
+                    }, index * 200);
+                });
+            }, 800);
+        }
+
+        function resetDemo() {
+            currentStep = 1;
+            
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById(`control-step${i}`).style.display = i === 1 ? 'block' : 'none';
+                document.getElementById(`viz-step${i}`).style.display = i === 1 ? 'block' : 'none';
+                document.getElementById(`step${i}`).className = 'step' + (i === 1 ? ' active' : '');
+            }
+            
+            const progressBar = document.getElementById('learning-progress');
+            const progressText = document.querySelector('.progress-text');
+            const button = document.getElementById('learning-btn');
+            
+            progressBar.style.width = '0%';
+            progressBar.style.background = 'linear-gradient(90deg, var(--primary-color), var(--info-color))';
+            progressText.textContent = '学習中...';
+            button.disabled = true;
+            button.innerHTML = '<span class="button-icon">⏳</span>学習中...';
+            button.classList.remove('success');
+            
+            document.querySelectorAll('.animated').forEach(el => {
+                el.classList.remove('animated', 'fadeIn', 'slideInRight', 'pulse');
+            });
+        }
+
+        function selectCryptoTech(tech) {
+            const techCards = document.querySelectorAll('.tech-card');
+            techCards.forEach(card => card.classList.remove('active-tech'));
+            
+            const selectedCard = document.querySelector(`[data-tech="${tech}"]`);
+            if (selectedCard) {
+                selectedCard.classList.add('active-tech');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                const institutionNetwork = document.querySelector('.institution-network');
+                if (institutionNetwork) {
+                    institutionNetwork.classList.add('animated', 'fadeIn');
+                }
+                
+                const methodCards = document.querySelectorAll('.method-card');
+                methodCards.forEach((card, index) => {
+                    setTimeout(() => {
+                        card.classList.add('animated', 'fadeIn');
+                    }, index * 200);
+                });
+            }, 500);
+            
+            const techCards = document.querySelectorAll('.tech-card');
+            techCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    const tech = card.getAttribute('data-tech');
+                    if (tech) {
+                        selectCryptoTech(tech);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

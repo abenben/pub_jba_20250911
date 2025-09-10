@@ -1,0 +1,1199 @@
+<!--
+README: DePIN for Compute 可視化デモ（単一HTML / オフライン）
+使い方:
+  1) このファイルをブラウザで開きます。
+  2) 上部のタブで「解説＆比較」「DePIN for Compute」「まとめ」を切り替えます。
+  3) 左側のパネルでステップを進めると、右側の図と分散計算プロセスが連動して変化します。
+注意: これは教育用の概念実証デモです。実際のDePIN実装ではありません。
+-->
+<!doctype html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DePIN for Compute 可視化デモ</title>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --background-color: #f8f9fa;
+            --text-color: #212529;
+            --border-color: #dee2e6;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+            --warning-color: #ffc107;
+            --public-color: #28a745;
+            --private-color: #dc3545;
+            --code-bg: #e9ecef;
+            --animation-duration: 0.8s;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+        .tabs {
+            display: flex;
+            background-color: #f1f1f1;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .tab-button {
+            background-color: inherit;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 14px 16px;
+            transition: 0.3s;
+            font-size: 1rem;
+            flex-grow: 1;
+        }
+        .tab-button:hover {
+            background-color: #ddd;
+        }
+        .tab-button.active {
+            background-color: #ccc;
+            border-bottom: 3px solid var(--primary-color);
+        }
+        .tab-content {
+            display: none;
+            padding: 20px;
+            border-top: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .section {
+            margin-bottom: 2rem;
+        }
+        .section h2 {
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+            color: var(--primary-color);
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+        .control-panel {
+            background-color: var(--background-color);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        .visualization {
+            background-color: #fff;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            min-height: 400px;
+        }
+        .button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .button:disabled {
+            background-color: var(--secondary-color);
+            cursor: not-allowed;
+        }
+        .button.success {
+            background-color: var(--success-color);
+        }
+        .button.danger {
+            background-color: var(--danger-color);
+        }
+        .tag {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin: 2px;
+        }
+        .tag-available {
+            background-color: var(--success-color);
+            color: white;
+        }
+        .tag-busy {
+            background-color: var(--info-color);
+            color: white;
+        }
+        .tag-overload {
+            background-color: var(--danger-color);
+            color: white;
+        }
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        .comparison-table th,
+        .comparison-table td {
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            text-align: left;
+        }
+        .comparison-table th {
+            background-color: var(--background-color);
+            font-weight: bold;
+        }
+        .comparison-table .traditional {
+            background-color: #fff5f5;
+        }
+        .comparison-table .depin {
+            background-color: #f0fff4;
+        }
+        .animated {
+            animation-duration: var(--animation-duration);
+            animation-fill-mode: both;
+        }
+        .fadeIn {
+            animation-name: fadeIn;
+        }
+        .pulse {
+            animation-name: pulse;
+            animation-duration: 2s;
+            animation-iteration-count: infinite;
+        }
+        .slideInRight {
+            animation-name: slideInRight;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+        .step {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 0 5px;
+            background-color: var(--background-color);
+            border: 2px solid var(--border-color);
+        }
+        .step.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        .step.completed {
+            background-color: var(--success-color);
+            color: white;
+            border-color: var(--success-color);
+        }
+        .world-map {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            position: relative;
+            min-height: 300px;
+        }
+        .gpu-node {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        .gpu-node:hover {
+            transform: scale(1.2);
+        }
+        .gpu-node.available {
+            background-color: var(--success-color);
+        }
+        .gpu-node.busy {
+            background-color: var(--info-color);
+        }
+        .gpu-node.overload {
+            background-color: var(--danger-color);
+        }
+        .resource-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 4px;
+            text-align: center;
+            color: white;
+        }
+        .cost-comparison {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .cost-card {
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .cost-traditional {
+            background-color: #fff5f5;
+            border: 2px solid var(--danger-color);
+        }
+        .cost-depin {
+            background-color: #f0fff4;
+            border: 2px solid var(--success-color);
+        }
+        .compute-progress {
+            background-color: var(--code-bg);
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            margin: 10px 0;
+        }
+        .efficiency-metrics {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .metric-card {
+            background: var(--success-color);
+            color: white;
+            padding: 15px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .architecture-diagram {
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+        .centralized-cloud, .decentralized-depin {
+            text-align: center;
+        }
+        .datacenter {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 10px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .depin-network {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 10px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .depin-nodes {
+            display: flex;
+            justify-content: space-around;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        .node {
+            background: var(--info-color);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 20px;
+            margin: 5px;
+            font-size: 0.9rem;
+        }
+        .blockchain-layer {
+            background: var(--primary-color);
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        .cloud-features, .depin-features {
+            text-align: left;
+            margin: 15px 0;
+        }
+        .feature-item {
+            padding: 5px 0;
+            font-size: 0.9rem;
+        }
+        .depin-projects {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .project-card {
+            background: #fff;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        .project-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .project-stats {
+            margin-top: 10px;
+        }
+        .stat {
+            display: inline-block;
+            background: var(--info-color);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            margin: 2px;
+        }
+        .use-cases {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .use-case-section {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 4px solid var(--primary-color);
+        }
+        .security-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .security-concerns {
+            background: #fff5f5;
+            border: 2px solid var(--danger-color);
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .security-solutions {
+            background: #f0fff4;
+            border: 2px solid var(--success-color);
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .detailed-cost-comparison {
+            margin: 20px 0;
+        }
+        .cost-breakdown {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .cost-item {
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+        .traditional-cost {
+            background: #fff5f5;
+            border: 2px solid var(--danger-color);
+        }
+        .depin-cost {
+            background: #f0fff4;
+            border: 2px solid var(--success-color);
+        }
+        .cost-details {
+            text-align: left;
+            margin-top: 10px;
+        }
+        .cost-details div {
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+        .savings-highlight {
+            background: linear-gradient(135deg, var(--success-color), #20c997);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .benefits-grid, .challenges-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .benefit-card {
+            background: #f0fff4;
+            border: 2px solid var(--success-color);
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .challenge-card {
+            background: #fff5f5;
+            border: 2px solid var(--danger-color);
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .future-outlook {
+            margin: 20px 0;
+        }
+        .outlook-item {
+            background: #fff;
+            border-left: 4px solid var(--info-color);
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .decision-matrix {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .decision-item {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--info-color));
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        @media (max-width: 768px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+            .resource-stats {
+                grid-template-columns: 1fr;
+            }
+            .cost-comparison {
+                grid-template-columns: 1fr;
+            }
+            .efficiency-metrics {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>分散型物理インフラネットワーク（DePIN for Compute）</h1>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-button active" onclick="openTab(event, 'overview')">解説＆比較</button>
+            <button class="tab-button" onclick="openTab(event, 'demo')">DePIN for Compute</button>
+            <button class="tab-button" onclick="openTab(event, 'summary')">まとめ</button>
+        </div>
+
+        <div id="overview" class="tab-content active">
+            <div class="section">
+                <h2>従来のクラウドコンピューティング vs DePIN for Compute</h2>
+                <p>従来のクラウドコンピューティング（AWSやGoogle Cloudなど）が巨大なデータセンターによる<strong>集中型</strong>のサービスであるのに対し、DePIN for Compute（コンピュートDePIN）は、世界中に分散する個人のコンピュータや専門業者の<strong>遊休計算リソース（特にGPU）を、ブロックチェーンとトークン（暗号資産）を使って束ね、オンデマンドで貸し出す分散型</strong>のマーケットプレイスです。</p>
+                
+                <div class="section">
+                    <h3>🏢 従来のクラウドコンピューティング（集中型クラウド）</h3>
+                    <div class="architecture-diagram">
+                        <div class="centralized-cloud">
+                            <div class="datacenter">
+                                <h4>🏢 巨大データセンター</h4>
+                                <div class="cloud-features">
+                                    <div class="feature-item">✅ 高い信頼性とパフォーマンス（SLA保証）</div>
+                                    <div class="feature-item">✅ 導入の容易さと拡張性</div>
+                                    <div class="feature-item">✅ 豊富なエコシステム</div>
+                                    <div class="feature-item">❌ 高コスト（特に高性能GPU）</div>
+                                    <div class="feature-item">❌ ベンダーロックイン</div>
+                                    <div class="feature-item">❌ 集中型のリスク</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <p><strong>仕組み</strong>: Amazon Web Services (AWS)、Google Cloud (GCP)、Microsoft Azureに代表される、巨大テック企業が世界中に大規模なデータセンターを建設・所有・運営し、ユーザーは必要なリソースをオンデマンドで借り受け、使用した分だけ（従量課金）支払います。</p>
+                </div>
+
+                <div class="section">
+                    <h3>🌐 DePIN for Compute（分散型コンピュート）</h3>
+                    <div class="architecture-diagram">
+                        <div class="decentralized-depin">
+                            <div class="depin-network">
+                                <h4>🌐 分散型GPUネットワーク</h4>
+                                <div class="depin-nodes">
+                                    <div class="node">🖥️ 個人GPU</div>
+                                    <div class="node">🖥️ ゲーマー</div>
+                                    <div class="node">🖥️ 独立DC</div>
+                                    <div class="node">🖥️ 企業GPU</div>
+                                </div>
+                                <div class="blockchain-layer">⛓️ ブロックチェーン + トークン経済</div>
+                                <div class="depin-features">
+                                    <div class="feature-item">✅ 圧倒的な低コスト（60-80%削減）</div>
+                                    <div class="feature-item">✅ 耐検閲性とパーミッションレス</div>
+                                    <div class="feature-item">✅ ベンダーロックイン回避</div>
+                                    <div class="feature-item">❌ パフォーマンスと信頼性のばらつき</div>
+                                    <div class="feature-item">❌ セキュリティとプライバシーの懸念</div>
+                                    <div class="feature-item">❌ 複雑さと管理の難易度</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <p><strong>仕組み</strong>: 世界中の個人、ゲーマー、独立したデータセンターなどが持つ「使われていないGPU/CPUパワー」をネットワークに提供し、リソース提供者はネイティブトークン（暗号資産）を受け取り、利用者は従来のクラウドより安価な価格で分散したリソースを借りて計算処理を実行します。</p>
+                </div>
+
+                <div class="section">
+                    <h3>📊 徹底比較：従来のクラウド vs DePIN for Compute</h3>
+                    <table class="comparison-table">
+                        <thead>
+                            <tr>
+                                <th>比較項目</th>
+                                <th>従来のクラウド (AWS, GCP, Azure)</th>
+                                <th>DePIN for Compute (Akash, Renderなど)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>アーキテクチャ</strong></td>
+                                <td class="traditional">集中型（企業が所有する巨大データセンター）</td>
+                                <td class="depin">分散型（個人の遊休リソースを束ねたP2Pネットワーク）</td>
+                            </tr>
+                            <tr>
+                                <td><strong>コスト</strong></td>
+                                <td class="traditional">高額（特に高性能GPU）</td>
+                                <td class="depin"><strong>非常に安価</strong>（遊休リソース活用の市場原理）</td>
+                            </tr>
+                            <tr>
+                                <td><strong>信頼性・安定性</strong></td>
+                                <td class="traditional"><strong>非常に高い</strong>（SLAによる品質保証）</td>
+                                <td class="depin">不安定・不均一（保証なし、ノードの性能や接続性に依存）</td>
+                            </tr>
+                            <tr>
+                                <td><strong>パフォーマンス</strong></td>
+                                <td class="traditional">均一で予測可能</td>
+                                <td class="depin">ばらつきが大きい</td>
+                            </tr>
+                            <tr>
+                                <td><strong>セキュリティ</strong></td>
+                                <td class="traditional">データは単一事業者に集中（事業者を信頼）</td>
+                                <td class="depin">データは分散ノード上で処理（<strong>ノード提供者の信頼性が課題</strong>）</td>
+                            </tr>
+                            <tr>
+                                <td><strong>プライバシー</strong></td>
+                                <td class="traditional">事業者がデータにアクセス可能（リスクあり）</td>
+                                <td class="depin">理論上は分散しているが、悪意あるノードのリスクあり</td>
+                            </tr>
+                            <tr>
+                                <td><strong>拡張性</strong></td>
+                                <td class="traditional">非常に高い（事実上無限）</td>
+                                <td class="depin">リソース提供者の参加数に依存（理論上は大規模）</td>
+                            </tr>
+                            <tr>
+                                <td><strong>検閲耐性</strong></td>
+                                <td class="traditional">低い（事業者のポリシーに依存）</td>
+                                <td class="depin"><strong>非常に高い</strong>（パーミッションレス）</td>
+                            </tr>
+                            <tr>
+                                <td><strong>ロックイン</strong></td>
+                                <td class="traditional">高い（ベンダーロックインが発生）</td>
+                                <td class="depin">低い（オープンな市場）</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <h3>🚀 主要なDePINプロジェクト</h3>
+                    <div class="depin-projects">
+                        <div class="project-card">
+                            <h4>🌐 Akash Network</h4>
+                            <p>分散型クラウドコンピューティングのパイオニア。Kubernetesベースでコンテナ化されたアプリケーションをデプロイ可能。</p>
+                            <div class="project-stats">
+                                <span class="stat">コスト削減: ~70%</span>
+                                <span class="stat">トークン: AKT</span>
+                            </div>
+                        </div>
+                        <div class="project-card">
+                            <h4>🎨 Render Network</h4>
+                            <p>3Dレンダリングに特化したGPUネットワーク。映画、ゲーム、建築業界で活用されている。</p>
+                            <div class="project-stats">
+                                <span class="stat">専門分野: 3Dレンダリング</span>
+                                <span class="stat">トークン: RNDR</span>
+                            </div>
+                        </div>
+                        <div class="project-card">
+                            <h4>⚡ io.net</h4>
+                            <p>AI/ML推論とトレーニングに最適化されたGPUクラスター。高性能計算に特化。</p>
+                            <div class="project-stats">
+                                <span class="stat">専門分野: AI/ML</span>
+                                <span class="stat">トークン: IO</span>
+                            </div>
+                        </div>
+                        <div class="project-card">
+                            <h4>🔄 Flux</h4>
+                            <p>分散型クラウドインフラストラクチャ。Web3アプリケーションのホスティングとコンピューティング。</p>
+                            <div class="project-stats">
+                                <span class="stat">専門分野: Web3インフラ</span>
+                                <span class="stat">トークン: FLUX</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>🎯 ユースケースによる使い分け</h3>
+                    <div class="use-cases">
+                        <div class="use-case-section">
+                            <h4>🏢 従来のクラウドが適しているケース</h4>
+                            <ul>
+                                <li><strong>ミッションクリティカルな本番環境</strong>: 企業の基幹システム、ECサイト、金融取引など、常時稼働と高い信頼性（SLA）が求められるサービス</li>
+                                <li><strong>機密性の高いデータ処理</strong>: 厳格なコンプライアンスやセキュリティ要件が求められる医療データや個人情報の処理</li>
+                                <li><strong>複雑な統合システム</strong>: データベース、ストレージ、ネットワーク、各種マネージドサービスをシームレスに連携させる必要がある場合</li>
+                            </ul>
+                        </div>
+                        <div class="use-case-section">
+                            <h4>🌐 DePIN for Computeが適しているケース</h4>
+                            <ul>
+                                <li><strong>AI/機械学習のトレーニング</strong>: 最もコストがかかるGPUを大量・長時間必要とするAIモデルの学習。多少の中断が許容できる場合に最適</li>
+                                <li><strong>3Dレンダリング</strong>: 映画のCGや建築パースなど、膨大な計算を必要とするバッチ処理（一括処理）</li>
+                                <li><strong>科学技術計算・シミュレーション</strong>: コストを抑えて大規模な並列計算を行いたい学術研究など</li>
+                                <li><strong>コスト最優先のタスク</strong>: 信頼性よりも計算コストの削減を最優先したいあらゆる処理</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>🔒 セキュリティとプライバシーの考慮事項</h3>
+                    <div class="security-section">
+                        <div class="security-concerns">
+                            <h4>⚠️ 主な懸念点</h4>
+                            <ul>
+                                <li><strong>データ漏洩リスク</strong>: 機密データや学習モデルを「未知の第三者」のコンピュータ上で実行することになるため、データ漏洩や盗難のリスクが伴います</li>
+                                <li><strong>ノードの信頼性</strong>: 個々のノード（コンピュータ）が予告なくオフラインになる可能性があり、従来のクラウドのようなSLA（サービス品質保証）は基本的にありません</li>
+                                <li><strong>悪意あるノード</strong>: 計算結果の改ざんや、データの不正利用を行う悪意あるノードが存在する可能性があります</li>
+                            </ul>
+                        </div>
+                        <div class="security-solutions">
+                            <h4>🛡️ 対策技術</h4>
+                            <ul>
+                                <li><strong>TEE（高信頼実行環境）</strong>: ハードウェアレベルでの暗号化により、ノード提供者でもデータにアクセスできない環境を提供</li>
+                                <li><strong>ゼロ知識証明（ZKPs）</strong>: 計算結果の正しさを、入力データを公開せずに証明する技術</li>
+                                <li><strong>分散検証</strong>: 複数のノードで同じ計算を実行し、結果を照合することで正確性を保証</li>
+                                <li><strong>暗号化計算</strong>: データを暗号化したまま計算を実行する完全準同型暗号などの技術</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>💰 コスト比較の詳細</h3>
+                    <div class="detailed-cost-comparison">
+                        <div class="cost-breakdown">
+                            <div class="cost-item traditional-cost">
+                                <h4>🏢 従来クラウド（例：AWS p3.2xlarge）</h4>
+                                <div class="cost-details">
+                                    <div>時間単価: $3.06</div>
+                                    <div>月額（24時間稼働）: $2,203</div>
+                                    <div>年額: $26,436</div>
+                                    <div>初期費用: なし</div>
+                                    <div>契約期間: 従量課金</div>
+                                </div>
+                            </div>
+                            <div class="cost-item depin-cost">
+                                <h4>🌐 DePIN（同等性能GPU）</h4>
+                                <div class="cost-details">
+                                    <div>時間単価: $0.75-1.20</div>
+                                    <div>月額（24時間稼働）: $540-864</div>
+                                    <div>年額: $6,480-10,368</div>
+                                    <div>初期費用: なし</div>
+                                    <div>契約期間: なし</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="savings-highlight">
+                            <h4>💡 削減効果</h4>
+                            <p><strong>年間削減額: $16,068-19,956 (60-75%削減)</strong></p>
+                            <p>プロジェクトによっては最大80%の削減も報告されています</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>金融業界での革新的応用</h3>
+                    <ul>
+                        <li><strong>分散リスクモデリング</strong>: 低コストで大規模な分散計算（コスト削減70%、精度向上30%）</li>
+                        <li><strong>高頻度取引</strong>: 地理的分散による低レイテンシ計算（レイテンシ削減50%、機会増加40%）</li>
+                        <li><strong>規制レポーティング</strong>: 分散並列処理による効率的レポート生成（処理時間短縮80%）</li>
+                        <li><strong>ストレステスト</strong>: 大規模分散計算による包括的テスト（範囲拡大200%、精度向上45%）</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div id="demo" class="tab-content">
+            <div class="section">
+                <h2>DePIN for Compute デモンストレーション</h2>
+                
+                <div class="step-indicator">
+                    <div class="step active" id="step1">1. GPU発見</div>
+                    <div class="step" id="step2">2. リソース予約</div>
+                    <div class="step" id="step3">3. 分散計算</div>
+                    <div class="step" id="step4">4. 結果集約</div>
+                </div>
+
+                <div class="layout">
+                    <div class="control-panel">
+                        <h3>DePIN制御パネル</h3>
+                        
+                        <div id="control-step1" class="control-step">
+                            <h4>ステップ1: GPU発見</h4>
+                            <p>世界各地の未使用GPUリソースを発見します。</p>
+                            <div class="resource-stats">
+                                <div class="stat-card" style="background: var(--success-color);">
+                                    <div>利用可能</div>
+                                    <div>1,247 GPU</div>
+                                </div>
+                                <div class="stat-card" style="background: var(--info-color);">
+                                    <div>使用中</div>
+                                    <div>523 GPU</div>
+                                </div>
+                                <div class="stat-card" style="background: var(--warning-color);">
+                                    <div>総計算力</div>
+                                    <div>15.2 PFLOPS</div>
+                                </div>
+                            </div>
+                            <button class="button" onclick="nextStep(2)">リソース予約開始</button>
+                        </div>
+
+                        <div id="control-step2" class="control-step" style="display: none;">
+                            <h4>ステップ2: リソース予約</h4>
+                            <p>必要な計算リソースを予約し、コストを比較します。</p>
+                            <div class="cost-comparison">
+                                <div class="cost-card cost-traditional">
+                                    <h5>従来クラウド</h5>
+                                    <div>$2.50/時間</div>
+                                    <div>GPU x 10</div>
+                                </div>
+                                <div class="cost-card cost-depin">
+                                    <h5>DePIN</h5>
+                                    <div>$0.75/時間</div>
+                                    <div>GPU x 10</div>
+                                </div>
+                            </div>
+                            <p><strong>コスト削減: 70%</strong></p>
+                            <button class="button success" onclick="nextStep(3)">分散計算開始</button>
+                        </div>
+
+                        <div id="control-step3" class="control-step" style="display: none;">
+                            <h4>ステップ3: 分散計算</h4>
+                            <p>複数GPUで並列計算を実行します。</p>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="compute-progress"></div>
+                            </div>
+                            <div class="compute-progress">
+                                <div>タスク分散: 完了</div>
+                                <div>並列実行: 進行中...</div>
+                                <div>GPU利用率: 95%</div>
+                                <div>推定完了: 2分30秒</div>
+                            </div>
+                            <button class="button" onclick="nextStep(4)" id="compute-btn" disabled>計算中...</button>
+                        </div>
+
+                        <div id="control-step4" class="control-step" style="display: none;">
+                            <h4>ステップ4: 結果集約</h4>
+                            <p>分散計算の結果を集約し、品質を保証しました。</p>
+                            <div class="efficiency-metrics">
+                                <div class="metric-card">
+                                    <div>処理時間短縮</div>
+                                    <div>80%</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div>コスト削減</div>
+                                    <div>70%</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div>精度向上</div>
+                                    <div>30%</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div>可用性</div>
+                                    <div>99.9%</div>
+                                </div>
+                            </div>
+                            <button class="button" onclick="resetDemo()">デモリセット</button>
+                        </div>
+                    </div>
+
+                    <div class="visualization">
+                        <div id="viz-step1" class="viz-step">
+                            <h4>グローバルGPUネットワーク</h4>
+                            <div class="world-map">
+                                <div class="gpu-node available" style="top: 20%; left: 15%;" title="北米 - RTX 4090">🖥️</div>
+                                <div class="gpu-node available" style="top: 30%; left: 25%;" title="北米 - A100">🖥️</div>
+                                <div class="gpu-node busy" style="top: 25%; left: 45%;" title="欧州 - V100">🖥️</div>
+                                <div class="gpu-node available" style="top: 35%; left: 55%;" title="欧州 - RTX 3080">🖥️</div>
+                                <div class="gpu-node available" style="top: 45%; left: 75%;" title="アジア - H100">🖥️</div>
+                                <div class="gpu-node busy" style="top: 55%; left: 80%;" title="アジア - A6000">🖥️</div>
+                                <div class="gpu-node available" style="top: 65%; left: 20%;" title="南米 - RTX 4080">🖥️</div>
+                                <div class="gpu-node available" style="top: 70%; left: 85%;" title="オセアニア - V100">🖥️</div>
+                            </div>
+                            <div style="text-align: center; color: white; margin-top: -10px;">
+                                <span class="tag-available">利用可能</span>
+                                <span class="tag-busy">使用中</span>
+                                <span class="tag-overload">高負荷</span>
+                            </div>
+                        </div>
+
+                        <div id="viz-step2" class="viz-step" style="display: none;">
+                            <h4>リソース予約システム</h4>
+                            <div class="cost-comparison">
+                                <div class="cost-card cost-traditional">
+                                    <h5>🏢 従来クラウド</h5>
+                                    <div>時間単価: $2.50</div>
+                                    <div>初期費用: $500</div>
+                                    <div>契約期間: 1年</div>
+                                    <div><span class="tag-overload">高コスト</span></div>
+                                </div>
+                                <div class="cost-card cost-depin">
+                                    <h5>🌐 DePIN Network</h5>
+                                    <div>時間単価: $0.75</div>
+                                    <div>初期費用: $0</div>
+                                    <div>契約期間: なし</div>
+                                    <div><span class="tag-available">低コスト</span></div>
+                                </div>
+                            </div>
+                            <div style="text-align: center; margin-top: 20px;">
+                                <h5>💰 年間コスト比較</h5>
+                                <p>従来: $21,900 → DePIN: $6,570</p>
+                                <p><strong>削減額: $15,330 (70%削減)</strong></p>
+                            </div>
+                        </div>
+
+                        <div id="viz-step3" class="viz-step" style="display: none;">
+                            <h4>分散並列計算</h4>
+                            <div class="world-map">
+                                <div class="gpu-node busy pulse" style="top: 20%; left: 15%;">⚡</div>
+                                <div class="gpu-node busy pulse" style="top: 30%; left: 25%;">⚡</div>
+                                <div class="gpu-node busy pulse" style="top: 25%; left: 45%;">⚡</div>
+                                <div class="gpu-node busy pulse" style="top: 35%; left: 55%;">⚡</div>
+                                <div class="gpu-node busy pulse" style="top: 45%; left: 75%;">⚡</div>
+                                <div class="gpu-node busy pulse" style="top: 55%; left: 80%;">⚡</div>
+                                <div class="gpu-node busy pulse" style="top: 65%; left: 20%;">⚡</div>
+                                <div class="gpu-node busy pulse" style="top: 70%; left: 85%;">⚡</div>
+                            </div>
+                            <div class="compute-progress">
+                                <div>🔄 タスク1: リスクモデル計算 (完了)</div>
+                                <div>🔄 タスク2: ポートフォリオ最適化 (90%)</div>
+                                <div>🔄 タスク3: ストレステスト (75%)</div>
+                                <div>🔄 タスク4: 規制レポート (60%)</div>
+                            </div>
+                        </div>
+
+                        <div id="viz-step4" class="viz-step" style="display: none;">
+                            <h4>計算完了・結果集約</h4>
+                            <div class="world-map">
+                                <div class="gpu-node available" style="top: 20%; left: 15%;">✅</div>
+                                <div class="gpu-node available" style="top: 30%; left: 25%;">✅</div>
+                                <div class="gpu-node available" style="top: 25%; left: 45%;">✅</div>
+                                <div class="gpu-node available" style="top: 35%; left: 55%;">✅</div>
+                                <div class="gpu-node available" style="top: 45%; left: 75%;">✅</div>
+                                <div class="gpu-node available" style="top: 55%; left: 80%;">✅</div>
+                                <div class="gpu-node available" style="top: 65%; left: 20%;">✅</div>
+                                <div class="gpu-node available" style="top: 70%; left: 85%;">✅</div>
+                            </div>
+                            <div style="text-align: center; margin-top: 20px;">
+                                <h5>📊 計算結果サマリー</h5>
+                                <div class="efficiency-metrics">
+                                    <div class="metric-card">
+                                        <div>総計算時間</div>
+                                        <div>2分18秒</div>
+                                    </div>
+                                    <div class="metric-card">
+                                        <div>従来比短縮</div>
+                                        <div>80%</div>
+                                    </div>
+                                </div>
+                                <p><span class="tag-available">高品質</span> <span class="tag-available">低コスト</span> <span class="tag-available">高速</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="summary" class="tab-content">
+            <div class="section">
+                <h2>まとめ: DePIN for Computeの革新的インパクト</h2>
+                
+                <div class="section">
+                    <h3>🎯 主要な利点</h3>
+                    <div class="benefits-grid">
+                        <div class="benefit-card">
+                            <h4>💰 圧倒的なコスト削減</h4>
+                            <p>従来クラウドと比較して<strong>60-80%のコスト削減</strong>。遊休リソース活用による市場原理で実現。</p>
+                        </div>
+                        <div class="benefit-card">
+                            <h4>🌐 耐検閲性とパーミッションレス</h4>
+                            <p>特定の管理者が存在しない分散型ネットワークで、誰でも許可なく利用可能。</p>
+                        </div>
+                        <div class="benefit-card">
+                            <h4>🔓 ベンダーロックイン回避</h4>
+                            <p>オープンなマーケットプレイスで特定事業者への依存を回避。</p>
+                        </div>
+                        <div class="benefit-card">
+                            <h4>📈 理論上無制限のスケーリング</h4>
+                            <p>世界中のGPUリソースを活用した大規模並列計算が可能。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>⚠️ 主要な課題</h3>
+                    <div class="challenges-grid">
+                        <div class="challenge-card">
+                            <h4>📊 パフォーマンスのばらつき</h4>
+                            <p>個人や小規模事業者のリソースのため、性能が不均一で予測困難。</p>
+                        </div>
+                        <div class="challenge-card">
+                            <h4>🔒 セキュリティとプライバシー</h4>
+                            <p>未知の第三者のコンピュータでの処理によるデータ漏洩リスク。</p>
+                        </div>
+                        <div class="challenge-card">
+                            <h4>🛠️ 管理の複雑さ</h4>
+                            <p>ジョブ管理、ノード選定、レイテンシ考慮など、利用者の管理負担が増加。</p>
+                        </div>
+                        <div class="challenge-card">
+                            <h4>📋 SLA保証なし</h4>
+                            <p>従来クラウドのような品質保証がなく、ノードの突然のオフラインリスク。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>📊 期待される効果</h3>
+                    <div class="efficiency-metrics">
+                        <div class="metric-card">
+                            <div>計算コスト削減</div>
+                            <div>60-80%</div>
+                        </div>
+                        <div class="metric-card">
+                            <div>処理時間短縮</div>
+                            <div>80%</div>
+                        </div>
+                        <div class="metric-card">
+                            <div>モデル精度向上</div>
+                            <div>30%</div>
+                        </div>
+                        <div class="metric-card">
+                            <div>グローバルリーチ</div>
+                            <div>24/7</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>🔮 将来展望と技術発展</h3>
+                    <div class="future-outlook">
+                        <div class="outlook-item">
+                            <h4>🛡️ セキュリティ技術の進歩</h4>
+                            <p>TEE（高信頼実行環境）、ゼロ知識証明、完全準同型暗号などの技術により、プライバシーとセキュリティの課題が解決されつつあります。</p>
+                        </div>
+                        <div class="outlook-item">
+                            <h4>🤖 AI特化型DePINの登場</h4>
+                            <p>AI推論とトレーニングに最適化された専門的なDePINプロジェクトが増加し、より効率的な計算環境が提供されています。</p>
+                        </div>
+                        <div class="outlook-item">
+                            <h4>🏛️ 企業採用の拡大</h4>
+                            <p>コスト削減効果の実証により、スタートアップから大企業まで、DePINを活用した計算インフラの採用が拡大しています。</p>
+                        </div>
+                        <div class="outlook-item">
+                            <h4>🌍 グローバルな計算リソース民主化</h4>
+                            <p>地理的制約を超えた計算リソースの民主化により、世界中の研究者や開発者が高性能計算にアクセス可能になります。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>🎯 採用の判断基準</h3>
+                    <div class="decision-matrix">
+                        <div class="decision-item">
+                            <h4>✅ DePINを選ぶべき場合</h4>
+                            <ul>
+                                <li>コスト削減が最優先</li>
+                                <li>バッチ処理や並列計算が中心</li>
+                                <li>多少の中断や遅延が許容可能</li>
+                                <li>検閲耐性が重要</li>
+                                <li>実験的なプロジェクトや研究</li>
+                            </ul>
+                        </div>
+                        <div class="decision-item">
+                            <h4>❌ 従来クラウドを選ぶべき場合</h4>
+                            <ul>
+                                <li>ミッションクリティカルなシステム</li>
+                                <li>厳格なSLA要件</li>
+                                <li>機密性の高いデータ処理</li>
+                                <li>複雑な統合システム</li>
+                                <li>24/7の安定稼働が必須</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>🚀 結論</h3>
+                    <p>DePIN for Computeは、計算インフラの<strong>パラダイムシフト</strong>を表しています。従来の集中型クラウドサービスに対する<strong>分散型の代替手段</strong>として、特にコスト効率性と検閲耐性において革新的な価値を提供します。</p>
+                    <p>ただし、信頼性やセキュリティの課題も存在するため、<strong>用途に応じた適切な選択</strong>が重要です。技術の成熟とともに、これらの課題は徐々に解決され、より多くの企業や研究機関がDePINを活用した計算インフラを採用することが予想されます。</p>
+                    <p>金融業界をはじめとする各産業において、DePIN for Computeは<strong>高コストなクラウドサービスからの脱却</strong>と、<strong>より効率的で経済的な計算システム</strong>の実現を可能にする重要な技術として位置づけられています。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 1;
+
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].classList.remove("active");
+            }
+            tablinks = document.getElementsByClassName("tab-button");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].classList.remove("active");
+            }
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+
+        function nextStep(step) {
+            document.getElementById(`control-step${currentStep}`).style.display = 'none';
+            document.getElementById(`viz-step${currentStep}`).style.display = 'none';
+            document.getElementById(`step${currentStep}`).classList.remove('active');
+            document.getElementById(`step${currentStep}`).classList.add('completed');
+
+            currentStep = step;
+
+            document.getElementById(`control-step${currentStep}`).style.display = 'block';
+            document.getElementById(`viz-step${currentStep}`).style.display = 'block';
+            document.getElementById(`step${currentStep}`).classList.add('active');
+
+            if (step === 3) {
+                startComputation();
+            } else if (step === 4) {
+                showResults();
+            }
+        }
+
+        function startComputation() {
+            let progress = 0;
+            const progressBar = document.getElementById('compute-progress');
+            const button = document.getElementById('compute-btn');
+            
+            const interval = setInterval(() => {
+                progress += 12;
+                progressBar.style.width = progress + '%';
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    button.disabled = false;
+                    button.textContent = '計算完了 - 結果集約へ';
+                    button.classList.add('success');
+                }
+            }, 250);
+        }
+
+        function showResults() {
+            setTimeout(() => {
+                document.querySelector('#viz-step4 .world-map').classList.add('animated', 'slideInRight');
+            }, 500);
+        }
+
+        function resetDemo() {
+            currentStep = 1;
+            
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById(`control-step${i}`).style.display = i === 1 ? 'block' : 'none';
+                document.getElementById(`viz-step${i}`).style.display = i === 1 ? 'block' : 'none';
+                document.getElementById(`step${i}`).className = 'step' + (i === 1 ? ' active' : '');
+            }
+            
+            document.getElementById('compute-progress').style.width = '0%';
+            document.getElementById('compute-btn').disabled = true;
+            document.getElementById('compute-btn').textContent = '計算中...';
+            document.getElementById('compute-btn').classList.remove('success');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelector('.world-map').classList.add('animated', 'fadeIn');
+        });
+    </script>
+</body>
+</html>
